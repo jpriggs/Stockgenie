@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+
+    <script src="{{ url_for('static', filename='js/vendor/modernizr-2.8.3-respond-1.4.2.min.js') }}"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
+    <title>{% block title %}{% endblock %}</title>
+</head>
+<body>
+    <div class='container'>
+        <h1>Stock Genie</h1>
+        <div class='row'>
+            <div class='col-sm-offset-2 col-sm-8 search-box clearfix'>
+                <h2>Search for a Stock</h2>
+                <form id='stock-search'>
+                    <input class='form-control form-control-lg' name='search-item' type='text' placeholder="Enter a stock symbol or name"></input>
+                    <button class='btn btn-primary col-sm-offset-3 col-sm-6 col-md-4 col-md-offset-4 col-xs-12' type='submit'>Search</button>
+                </form>
+            </div>
+        </div>
+
+        <div class='row data-container clearfix'>
+            <div class='col-md-3 col-sm-4'>
+                <div class='stock-info-box'>
+                    <h4>Stock Info</h4>
+                    <table>
+                        <tbody>
+                            {% for key, value in stockData.items() %}
+                            <tr>
+                                <td>{{ key }}</td><td>{{ value }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class='col-md-6 col-sm-8'>
+                <div class='stock-graph-box'>
+                    <h4>Stock Performance</h4>
+                </div>
+            </div>
+            <div class='col-md-3 col-sm-12'>
+                <div class='stock-predict-box'>
+                    <h4>Stock Prediction</h4>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-container">
+            <footer class="wrapper">
+                <p>Stock Genie by <a href="https://github.com/jpriggs">Jason Rigdon</a></p>
+            </footer>
+        </div>
+
+    </div>
+</body>
+</html>

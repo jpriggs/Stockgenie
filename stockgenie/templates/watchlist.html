@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% from "form_macros.html" import render_field %}
+
+{% block title %}
+Stock Genie -- My Watchlist
+{% endblock %}
+
+{% block content %}
+    <section>
+        <h1>Add a stock to watch</h1>
+        <form action="" method="post">
+            {{ form.hidden_tag() }}
+            <table>
+                {{ render_field(form.stockName, size=50) }}
+                {{ render_field(form.stockSymbol, size=5) }}
+                {{ render_field(form.stockExchange, size=6) }}
+                {{ render_field(form.currentPrice, size=10) }}
+                <tr>
+                    <td></td>
+                    <td><button type="submit">Submit</button></td>
+                </tr>
+            </table>
+        </form>
+    </section>
+{% endblock %}
