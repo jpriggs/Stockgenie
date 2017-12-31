@@ -5,6 +5,7 @@ import json
 import requests
 
 from flask import Flask, render_template, url_for, request, redirect, flash
+from models import ApiStockData
 #from flask_sqlalchemy import SQLAlchemy
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -14,13 +15,6 @@ app.config['SECRET_KEY'] = '\x16\x9a\xb8\xf9D\xba6\x0f\\\xf6\xac\x8dh\xb1\x92\x1
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'stockgenie.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 #db = SQLAlchemy(app)
-
-# Creates a constructor of api data passed into the class
-class ApiStockData():
-
-    def __init__(self, timeStamp, closeValue):
-        self.timeStampValue = datetime.strptime(timeStamp, '%Y-%m-%d %H:%M:%S')
-        self.priceValue = closeValue
 
 def stockListSearch():
     stockDict = pd.read_csv('stocklist.csv').set_index('Symbol').T.to_dict('list')
@@ -42,7 +36,8 @@ def getApiStockValues():
 
     apikey = 'Z0QNUSV1HF3JBMRR'
     function = 'TIME_SERIES_INTRADAY'
-    symbol = stockListSearch()[0]
+    #symbol = stockListSearch()[0]
+    symbol = "NFLX"
     minutes = 1
     interval = str(minutes) + 'min'
     outputsize = 'compact'
@@ -63,21 +58,20 @@ def getApiStockValues():
             stockHistoricalPrices.append(ApiStockData(timeStampValue, priceValue))
 
         # Adds objects from a class constructor to a list
-        stockHistoricalPrices = [ApiStockData(timeStampValue, timeStampData[timeStampValue]['4. close']) for timeStampValue in timeStampData]
+        stockHistoricalPrices = [ApiStockData(x, timeStampData[x]['4. close']) for x in timeStampData]
 
-        # Iterates and sorts the object data
-        for obj in sorted(stockHistoricalPrices, key=lambda x: x.timeStampValue, reverse=False):
+        # Iterates through the sorted data and displays the timestamp and closing prices
+        for obj in sorted(stockHistoricalPrices, key=lambda sortObjectIteration: sortObjectIteration.timeStampValue, reverse=False):
             print('{}: {}'.format(obj.timeStampValue, obj.priceValue))
-            #print('{}: {}'.format(obj.getPrettyDate(), obj.doubledValue))
-
 
 # Views
 @app.route('/')
 @app.route('/index')
 def index():
-
-    data = stockListSearch()
     getApiStockValues()
+
+    '''
+    data = stockListSearch()
     print(data)
     stockData = dict({
                 'Name': '{}'.format(stockListSearch()[1]),
@@ -85,8 +79,10 @@ def index():
                 'Exchange': '{}'.format(stockListSearch()[2])
     })
 
-
+    '''
+    stockData = {}
     return render_template('base.html', stockData=stockData)
+
 
 # Error handling
 @app.errorhandler(404)

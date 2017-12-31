@@ -5,6 +5,12 @@ datetime.strftime
 #from sqlalchemy import desc
 #from stockgenie import db
 
+class ApiStockData():
+
+    def __init__(self, timeStamp, price):
+        self.timeStampValue = timeStamp
+        self.priceValue = price
+
 #class Stock():
 
     #def stockAPIData():
