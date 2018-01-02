@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from models import ApiStockData
 import pandas as pd
 import json
 import requests
@@ -14,13 +15,6 @@ app.config['SECRET_KEY'] = '\x16\x9a\xb8\xf9D\xba6\x0f\\\xf6\xac\x8dh\xb1\x92\x1
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'stockgenie.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 #db = SQLAlchemy(app)
-
-# Creates a constructor of api data passed into the class
-class ApiStockData():
-
-    def __init__(self, timeStamp, closeValue):
-        self.timeStampValue = datetime.strptime(timeStamp, '%Y-%m-%d %H:%M:%S')
-        self.priceValue = closeValue
 
 def stockListSearch():
     stockDict = pd.read_csv('stocklist.csv').set_index('Symbol').T.to_dict('list')
@@ -63,13 +57,11 @@ def getApiStockValues():
             stockHistoricalPrices.append(ApiStockData(timeStampValue, priceValue))
 
         # Adds objects from a class constructor to a list
-        stockHistoricalPrices = [ApiStockData(timeStampValue, timeStampData[timeStampValue]['4. close']) for timeStampValue in timeStampData]
+        stockHistoricalPrices = [ApiStockData(x, timeStampValue[x]['4. close']) for x in timeStampData]
 
-        # Iterates and sorts the object data
-        for obj in sorted(stockHistoricalPrices, key=lambda x: x.timeStampValue, reverse=False):
+        # Iterates through the sorted data and displays the timestamp and closing prices
+        for obj in sorted(stockHistoricalPrices, key=lambda sortObjectIteration: sortObjectIteration.timeStampValue, reverse=False):
             print('{}: {}'.format(obj.timeStampValue, obj.priceValue))
-            #print('{}: {}'.format(obj.getPrettyDate(), obj.doubledValue))
-
 
 # Views
 @app.route('/')
