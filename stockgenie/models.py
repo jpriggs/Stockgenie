@@ -1,15 +1,16 @@
 import json
 import requests
 from datetime import datetime
-datetime.strftime
 #from sqlalchemy import desc
 #from stockgenie import db
 
 class ApiStockData():
 
     def __init__(self, timeStamp, price):
-        self.timeStampValue = timeStamp
-        self.priceValue = price
+        self.timeStampValue = datetime.strptime(timeStamp, '%Y-%m-%d %H:%M:%S')
+        self.priceValue = float(price)
+
+#'%Y-%m-%d %H:%M:%S'
 
 #class Stock():
 

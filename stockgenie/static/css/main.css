@@ -50,6 +50,7 @@ h1 {
     background-color: white;
     border: black 2px solid;
     border-radius: 25px;
+    padding-bottom: 20px;
 }
 .stock-predict-box {
     background-color: white;
@@ -69,6 +70,7 @@ h1 {
     font-weight: bold;
     padding-left: 7px;
     padding-right: 10px;
+    padding-bottom: 5px;
     vertical-align: top;
     text-align: right;
     border-right: 1px solid #6f6f6f;
