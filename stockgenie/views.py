@@ -9,15 +9,15 @@ import numpy as np
 from sklearn import datasets, linear_model
 
 from flask import Flask, render_template, url_for, request, redirect, flash
-from models import ApiStockData
+from models import ApiStockData, UserSearchData, StockListData
 #from flask_sqlalchemy import SQLAlchemy
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = '\x16\x9a\xb8\xf9D\xba6\x0f\\\xf6\xac\x8dh\xb1\x92\x13\xcf\x18\xe27\x1c\x12\x19\xf9'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'stockgenie.db')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+#app.config['SECRET_KEY'] = '\x16\x9a\xb8\xf9D\xba6\x0f\\\xf6\xac\x8dh\xb1\x92\x13\xcf\x18\xe27\x1c\x12\x19\xf9'
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'stockgenie.db')
+#app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 #db = SQLAlchemy(app)
 
 
@@ -37,8 +37,8 @@ def stockPriceChart(dataset, name):
         ),
         showlegend=False,
         margin=go.Margin(
-            l=80,
-            r=30,
+            l='auto',
+            r=25,
             b=50,
             t=50,
             pad=2
@@ -48,7 +48,7 @@ def stockPriceChart(dataset, name):
             titlefont=dict(
                 family='Arial Black, sans-serif',
                 size=18,
-                color='#000066'
+                color='#0066ff'
             ),
             autorange=True,
             showgrid=True,
@@ -69,7 +69,7 @@ def stockPriceChart(dataset, name):
             zeroline=False,
             showline=True,
             autotick=True,
-            tickformat='$.2f',
+            tickformat='$,.2f',
             showticklabels=True
         )
     )
@@ -78,24 +78,34 @@ def stockPriceChart(dataset, name):
     return plotly.offline.plot(fig, config=config, output_type='div', show_link=False, link_text=False)
 
 def stockListSearch():
-    stockDict = pd.read_csv('stocklist.csv').set_index('Symbol').T.to_dict('list')
-    searchItem = request.args.get('search-item').lower()
-    searchItem = ''.join(sub for sub in searchItem if sub.isalnum())
-    formattedStockDict = {key.lower(): [value.lower().replace('.', '').replace(',', '').replace(' ', '').replace('-', '').replace('/', '') for value in values] for key, values in stockDict.items()}
+    # Sends the user input to a constructor class and formats the string
+    searchString = UserSearchData(request.args.get('search-item'))
+    if not searchString:
+        return None
+
+    # Formats the stock list dictionary to match any user input
+    stockList = {}
+    stockListDict = pd.read_csv('stocklist.csv').set_index('Symbol').T.to_dict('list')
+    for key, value in stockListDict.items():
+        stockValues = StockListData(key, value[0], value[1])
+        stockList.update({stockValues.stockSymbol: [stockValues.companyName, stockValues.stockExchange]})
+
+    # Searches the stock list to match the user imput string and returns the matching key
     matchedItem = ''
+    for key, value in stockList.items():
+        if key == searchString.searchData or value[0] == searchString.searchData:
+            matchedItem = key.upper()
 
-    return searchItem
-    #for key, value in formattedStockDict.items():
-        #if key == searchItem or value[0] == searchItem:
-            #matchedItem = key
+    # Uses the user matched key to return the unformatted dictionary values
+    for key, value in stockListDict.items():
+        if key == matchedItem:
+            return [key, value[0], value[1]]
 
-    #for key, value in stockDict.items():
-        #if key == matchedItem.upper():
-            #return [key, value[0], value[1]]
+    return None
 
 # Get's the basic stock info from the Google Finance API
-def getBasicStockInfo():
-    stockSymbol = 'NFLX'
+def getBasicStockInfo(symbol):
+    stockSymbol = symbol
     datatype = 'json'
     url = 'https://finance.google.com/finance?q={}&output={}'.format(stockSymbol, datatype)
 
@@ -109,8 +119,8 @@ def getBasicStockInfo():
                         'Exchange': '{}'.format(data['e']),
                         'Price': '{}'.format(data['l']),
                         'Open': '{}'.format(data['op']),
-                        'PriceChg': '{}'.format(data['c']),
-                        'PercentChg': '{}%'.format(data['cp']),
+                        '$ Chg': '{}'.format(data['c']),
+                        '% Chg': '{}%'.format(data['cp']),
                         'High': '{}'.format(data['hi']),
                         'Low': '{}'.format(data['lo']),
                         'MktCap': '{}'.format(data['mc']),
@@ -126,12 +136,12 @@ def getBasicStockInfo():
         return stockData
 
 # Gets the external API
-def getApiStockValues():
+def getApiStockValues(symbol):
 
     apikey = 'Z0QNUSV1HF3JBMRR'
     function = 'TIME_SERIES_INTRADAY'
     #symbol = stockListSearch()[0]
-    stockSymbol = 'NFLX'
+    stockSymbol = symbol
     minutes = 1
     interval = str(minutes) + 'min'
     outputsize = 'compact'
@@ -170,16 +180,12 @@ def getApiStockValues():
 @app.route('/')
 @app.route('/index')
 def index():
-    # Get user search string if entered or redirect
-    ##companyName = userSearchInput[1]
-    ##stockSymbol = userSearchInput[0]
-    userInput = stockListSearch()
-    print(userInput)
-    data = getApiStockValues()
-    stockData =  getBasicStockInfo()
+    stockMatchResult = stockListSearch()
+    pricingData = getApiStockValues(stockMatchResult[0])
+    stockData =  getBasicStockInfo(stockMatchResult[0])
     companyName = stockData['Name']
 
-    chart = stockPriceChart(data, companyName)
+    chart = stockPriceChart(pricingData, companyName)
 
     return render_template('base.html', stockData=stockData, chart=chart)
 
