@@ -12,15 +12,15 @@ class UserSearchData():
 
     def __init__(self, text):
         self.searchData = text.lower()
-        self.searchData = ''.join(x for x in self.searchData if x.isalnum())
+        self.searchData = ''.join(char for char in self.searchData if char.isalnum())
 
 class StockListData():
 
     def __init__(self, symbol, name, exchange):
 
         self.stockSymbol = symbol.lower()
-        self.stockSymbol = ''.join(x for x in self.stockSymbol if x.isalnum())
+        self.stockSymbol = ''.join(char for char in self.stockSymbol if char.isalnum())
         self.companyName = name.lower()
-        self.companyName = ''.join(x for x in self.companyName if x.isalnum())
+        self.companyName = ''.join(char for char in self.companyName if char.isalnum())
         self.stockExchange = exchange.lower()
-        self.stockExchange = ''.join(x for x in self.stockExchange if x.isalnum())
+        self.stockExchange = ''.join(char for char in self.stockExchange if char.isalnum())
