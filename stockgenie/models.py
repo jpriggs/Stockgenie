@@ -11,16 +11,16 @@ class ApiStockData():
 class UserSearchData():
 
     def __init__(self, text):
-        self.searchData = text.lower()
-        self.searchData = ''.join(char for char in self.searchData if char.isalnum())
+        self.sanitizedSearchString = text.lower()
+        self.sanitizedSearchString = ''.join(character for character in self.sanitizedSearchString if character.isalnum())
 
 class StockListData():
 
     def __init__(self, symbol, name, exchange):
 
         self.stockSymbol = symbol.lower()
-        self.stockSymbol = ''.join(char for char in self.stockSymbol if char.isalnum())
+        self.stockSymbol = ''.join(character for character in self.stockSymbol if character.isalnum())
         self.companyName = name.lower()
-        self.companyName = ''.join(char for char in self.companyName if char.isalnum())
+        self.companyName = ''.join(character for character in self.companyName if character.isalnum())
         self.stockExchange = exchange.lower()
-        self.stockExchange = ''.join(char for char in self.stockExchange if char.isalnum())
+        self.stockExchange = ''.join(character for character in self.stockExchange if character.isalnum())

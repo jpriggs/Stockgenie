@@ -93,7 +93,7 @@ def stockListSearch():
     for key, value in stockListDict.items():
         stockValues = StockListData(key, value[0], value[1])
 
-        if stockValues.stockSymbol == searchString.searchData:
+        if stockValues.stockSymbol == searchString.sanitizedSearchString:
             unformattedDictSymbol = key
         stockList.update({stockValues.stockSymbol: [stockValues.companyName, stockValues.stockExchange]})
 
@@ -104,7 +104,7 @@ def stockListSearch():
     # Searches the stock list to match the user imput string and returns the matching key
     matchedItem = ''
     for key, value in stockList.items():
-        if key == searchString.searchData or value[0] == searchString.searchData:
+        if key == searchString.sanitizedSearchString or value[0] == searchString.sanitizedSearchString:
             matchedItem = unformattedDictSymbol
 
     if not matchedItem:
