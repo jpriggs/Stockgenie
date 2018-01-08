@@ -6,7 +6,8 @@ import requests
 import plotly
 import plotly.graph_objs as go
 import numpy as np
-from sklearn import datasets, linear_model
+import matplotlib.dates as mdates
+from scipy import stats
 
 from flask import Flask, render_template, url_for, request, redirect, flash
 from models import ApiStockData, UserSearchData, StockListData
@@ -20,8 +21,7 @@ app = Flask(__name__)
 #app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 #db = SQLAlchemy(app)
 
-
-def stockPriceChart(dataset, name):
+def createStockPriceChart(dataset, name):
 
     # Load the dataset
     companyName = name
@@ -29,7 +29,7 @@ def stockPriceChart(dataset, name):
     data = [go.Scatter(x=ds.index, y=ds.Price)]
     config = {'displayModeBar': False}
     layout = go.Layout(
-        title=companyName + 'Price History',
+        title=companyName + ' Price History',
         titlefont=dict(
             family='Helvetica, sans-serif',
             size=20,
@@ -81,8 +81,8 @@ def stockPriceChart(dataset, name):
 def stockListSearch():
     # Sends the user input to a constructor class and formats the string
     searchString = request.args.get('search-item')
-    if searchString is None or searchString is '':
-        print ("Search String Error")
+    if not searchString:
+        print ("searchString error")
         return None
     searchString = UserSearchData(searchString)
 
@@ -97,8 +97,8 @@ def stockListSearch():
             unformattedDictSymbol = key
         stockList.update({stockValues.stockSymbol: [stockValues.companyName, stockValues.stockExchange]})
 
-    if stockList is None or stockList == {} or unformattedDictSymbol is '':
-        print('StockList Dictionary Error')
+    if not stockList or unformattedDictSymbol is '':
+        print('stockList dictionary error')
         return None
 
     # Searches the stock list to match the user imput string and returns the matching key
@@ -106,8 +106,9 @@ def stockListSearch():
     for key, value in stockList.items():
         if key == searchString.searchData or value[0] == searchString.searchData:
             matchedItem = unformattedDictSymbol
-    if matchedItem is None or matchedItem is '':
-        print ('Dictionary matching error')
+
+    if not matchedItem:
+        print ('dictionary matching error')
         return None
 
     # Uses the user matched key to return the unformatted dictionary values
@@ -117,7 +118,7 @@ def stockListSearch():
             searchResults = [key.replace('^', '-'), value[0], value[1]]
 
     if searchResults is None or searchResults is [] or '^' in searchResults[0]:
-        print ('No returned values to function')
+        print ('no returned values to function')
         return None
 
     return searchResults
@@ -175,7 +176,7 @@ def getBasicStockInfo(symbol, name, exchange):
                         'Updated': '{}'.format(datetime.now().strftime('%b %d, %Y %H:%M:%S'))
         })
     # Checks if the API returns a JSON object
-    if stockData is None or stockData is {}:
+    if not stockData:
         return None
 
     return stockData
@@ -225,14 +226,16 @@ def getApiStockValues(symbol):
 @app.route('/')
 @app.route('/index')
 def index():
+
     stockMatchResult = stockListSearch()
+    # Validates that a user inputted matched stock is returned
+
+    if stockMatchResult is None:
+        return render_template('base.html')
+
     symbol = stockMatchResult[0]
     name = stockMatchResult[1]
     exchange = stockMatchResult[2]
-
-    # Validates that a user inputted matched stock is returned
-    if stockMatchResult is None:
-        return render_template('base.html')
 
     # Gets API values from Alphavantage (pricing) and Google Finance (Stock Info)
     pricingData = getApiStockValues(symbol)
@@ -244,10 +247,8 @@ def index():
         return render_template('base.html')
 
     # Creates a chart based on the price data returned from the API
-    if stockData is None:
-        companyName = name
-    companyName = stockData['Name'][:38]
-    chart = stockPriceChart(pricingData, companyName)
+    companyName = name[:38]
+    chart = createStockPriceChart(pricingData, companyName)
 
     return render_template('base.html', stockData=stockData, chart=chart)
 

@@ -51,6 +51,18 @@
             <div class='col-md-3 col-sm-12'>
                 <div class='stock-predict-box'>
                     <h4>Stock Prediction</h4>
+                    <table>
+                        <tbody>
+                            {% if stockData %}
+                            <tr>
+                                <td>Prediction: $25.00</td>
+                            </tr>
+                            <tr>
+                                <td>Recommentation: Buy</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
