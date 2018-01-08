@@ -18,9 +18,17 @@ class StockListData():
 
     def __init__(self, symbol, name, exchange):
 
-        self.stockSymbol = symbol.lower()
-        self.stockSymbol = ''.join(character for character in self.stockSymbol if character.isalnum())
-        self.companyName = name.lower()
-        self.companyName = ''.join(character for character in self.companyName if character.isalnum())
-        self.stockExchange = exchange.lower()
-        self.stockExchange = ''.join(character for character in self.stockExchange if character.isalnum())
+        self.stockSymbol = symbol
+        self.companyName = name
+        self.stockExchange = exchange
+
+        self.sanitizedStockSymbol = self.sanitizeValue(symbol)
+        self.sanitizedCompanyName = self.sanitizeValue(name)
+        self.sanitizedStockExchange = self.sanitizeValue(exchange)
+
+    def sanitizeValue(self, valToSanitize):
+        valToSanitize = valToSanitize.lower()
+        return ''.join(character for character in valToSanitize if character.isalnum())
+
+    def matchesNameOrSymbol(self, searchValue):
+        return self.sanitizedStockSymbol == searchValue or self.sanitizedCompanyName == searchValue

@@ -78,9 +78,8 @@ def createStockPriceChart(dataset, name):
 
     return plotly.offline.plot(fig, config=config, output_type='div', show_link=False, link_text=False)
 
-def stockListSearch():
-    # Sends the user input to a constructor class and formats the string
-    searchString = request.args.get('search-item')
+def stockListSearch(searchString):
+
     if not searchString:
         print ("searchString error")
         return None
@@ -94,13 +93,12 @@ def stockListSearch():
         #thisStockData contains [stock name, exchange name]
         stockValues = StockListData(thisStockSymbol, thisStockData[0], thisStockData[1])
 
-        if stockValues.stockSymbol == searchDataContainer.sanitizedSearchString or stockValues.companyName == searchDataContainer.sanitizedSearchString:
-            rawStockSymbol = thisStockSymbol
-            return [rawStockSymbol.replace('^', '-'), thisStockData[0], thisStockData[1]]
+        if stockValues.matchesNameOrSymbol(searchDataContainer.sanitizedSearchString):
+            return stockValues
 
 
     print ('Error:\tNo returned values to function')
-    return []
+    return None
 
 # Get's the basic stock info from the Google Finance API
 def getBasicStockInfo(symbol, name, exchange):
@@ -205,16 +203,16 @@ def getApiStockValues(symbol):
 @app.route('/')
 @app.route('/index')
 def index():
+    userSearchedStock = request.args.get('search-item')
+    stockMatchResult = stockListSearch(userSearchedStock)
 
-    stockMatchResult = stockListSearch()
     # Validates that a user inputted matched stock is returned
-
     if stockMatchResult is None:
         return render_template('base.html')
 
-    symbol = stockMatchResult[0]
-    name = stockMatchResult[1]
-    exchange = stockMatchResult[2]
+    symbol = stockMatchResult.stockSymbol.replace('^','-')
+    name = stockMatchResult.companyName
+    exchange = stockMatchResult.stockExchange
 
     # Gets API values from Alphavantage (pricing) and Google Finance (Stock Info)
     pricingData = getApiStockValues(symbol)
