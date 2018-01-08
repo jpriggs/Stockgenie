@@ -84,28 +84,31 @@ def stockListSearch():
     if not searchString:
         print ("searchString error")
         return None
-    searchString = UserSearchData(searchString)
+
+    searchDataContainer = UserSearchData(searchString)
 
     # Formats the stock list dictionary to match any user input
-    stockList = {}
-    unformattedDictSymbol = ''
-    stockListDict = pd.read_csv('stocklist.csv').set_index('Symbol').T.to_dict('list')
-    for key, value in stockListDict.items():
-        stockValues = StockListData(key, value[0], value[1])
+    sanitizedStocksDict = {}
+    rawStockSymbol = ''
+    rawStocksDict = pd.read_csv('stocklist.csv').set_index('Symbol').T.to_dict('list')
+    for thisStockSymbol, thisStockData in rawStocksDict.items():
+        #thisStockData contains [stock name, exchange name]
+        stockValues = StockListData(thisStockSymbol, thisStockData[0], thisStockData[1])
 
-        if stockValues.stockSymbol == searchString.sanitizedSearchString:
-            unformattedDictSymbol = key
-        stockList.update({stockValues.stockSymbol: [stockValues.companyName, stockValues.stockExchange]})
+        if stockValues.stockSymbol == searchDataContainer.sanitizedSearchString or stockValues.companyName == searchDataContainer.sanitizedSearchString:
+            rawStockSymbol = thisStockSymbol
+        sanitizedStocksDict.update({stockValues.stockSymbol: [stockValues.companyName, stockValues.stockExchange]})
 
-    if not stockList or unformattedDictSymbol is '':
+    if not sanitizedStocksDict or rawStockSymbol is '':
         print('stockList dictionary error')
         return None
 
     # Searches the stock list to match the user imput string and returns the matching key
     matchedItem = ''
-    for key, value in stockList.items():
-        if key == searchString.sanitizedSearchString or value[0] == searchString.sanitizedSearchString:
-            matchedItem = unformattedDictSymbol
+    for thisStockSymbol, thisStockData in sanitizedStocksDict.items():
+        #thisStockData contains [stock name, exchange name]
+        if thisStockSymbol == searchDataContainer.sanitizedSearchString or thisStockData[0] == searchDataContainer.sanitizedSearchString:
+            matchedItem = rawStockSymbol
 
     if not matchedItem:
         print ('dictionary matching error')
@@ -113,9 +116,10 @@ def stockListSearch():
 
     # Uses the user matched key to return the unformatted dictionary values
     searchResults = []
-    for key, value in stockListDict.items():
-        if key == matchedItem:
-            searchResults = [key.replace('^', '-'), value[0], value[1]]
+    for thisStockSymbol, thisStockData in rawStocksDict.items():
+        #thisStockData contains [stock name, exchange name]
+        if thisStockSymbol == matchedItem:
+            searchResults = [thisStockSymbol.replace('^', '-'), thisStockData[0], thisStockData[1]]
 
     if searchResults is None or searchResults is [] or '^' in searchResults[0]:
         print ('no returned values to function')
