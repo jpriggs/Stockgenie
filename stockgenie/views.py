@@ -88,7 +88,6 @@ def stockListSearch():
     searchDataContainer = UserSearchData(searchString)
 
     # Formats the stock list dictionary to match any user input
-    sanitizedStocksDict = {}
     rawStockSymbol = ''
     rawStocksDict = pd.read_csv('stocklist.csv').set_index('Symbol').T.to_dict('list')
     for thisStockSymbol, thisStockData in rawStocksDict.items():
@@ -97,35 +96,11 @@ def stockListSearch():
 
         if stockValues.stockSymbol == searchDataContainer.sanitizedSearchString or stockValues.companyName == searchDataContainer.sanitizedSearchString:
             rawStockSymbol = thisStockSymbol
-        sanitizedStocksDict.update({stockValues.stockSymbol: [stockValues.companyName, stockValues.stockExchange]})
+            return [rawStockSymbol.replace('^', '-'), thisStockData[0], thisStockData[1]]
 
-    if not sanitizedStocksDict or rawStockSymbol is '':
-        print('stockList dictionary error')
-        return None
 
-    # Searches the stock list to match the user imput string and returns the matching key
-    matchedItem = ''
-    for thisStockSymbol, thisStockData in sanitizedStocksDict.items():
-        #thisStockData contains [stock name, exchange name]
-        if thisStockSymbol == searchDataContainer.sanitizedSearchString or thisStockData[0] == searchDataContainer.sanitizedSearchString:
-            matchedItem = rawStockSymbol
-
-    if not matchedItem:
-        print ('dictionary matching error')
-        return None
-
-    # Uses the user matched key to return the unformatted dictionary values
-    searchResults = []
-    for thisStockSymbol, thisStockData in rawStocksDict.items():
-        #thisStockData contains [stock name, exchange name]
-        if thisStockSymbol == matchedItem:
-            searchResults = [thisStockSymbol.replace('^', '-'), thisStockData[0], thisStockData[1]]
-
-    if searchResults is None or searchResults is [] or '^' in searchResults[0]:
-        print ('no returned values to function')
-        return None
-
-    return searchResults
+    print ('Error:\tNo returned values to function')
+    return []
 
 # Get's the basic stock info from the Google Finance API
 def getBasicStockInfo(symbol, name, exchange):
