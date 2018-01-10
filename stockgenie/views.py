@@ -101,6 +101,7 @@ def getBasicStockInfo(symbol, name, exchange):
     try:
         response = requests.get(url)
         if response.status_code in (200,):
+            #TODO: Clean up this code to remove the unnecessary .format on ones that don't need it.
             data = json.loads(response.content[6:-2].decode('unicode_escape'))
             stockData = dict({
                             'Name': '{}'.format(data['name']),
@@ -169,7 +170,7 @@ def getApiStockValues(symbol):
             # Adds timestamp values as indexes and all close price values to a list
             stockHistoricalPrices = []
             for timeStampValue in timeStampData:
-                priceValue = timeStampData[timeStampValue]['4. close']
+                priceValue = timeStampData[timeStampValue][apiPriceKey]
                 stockHistoricalPrices.append(ApiStockData(timeStampValue, priceValue))
 
             # Adds objects from a class constructor to a list
@@ -211,9 +212,9 @@ def index():
         return render_template('base.html')
 
     # Adjusts the chart title length to fit the chart size
+    # TODO: Offload this code to the StockListData class
     baseTitleLength = 32
     for character in stockMatchDataContainer.companyName[baseTitleLength:]:
-        print(len(stockMatchDataContainer.companyName[:baseTitleLength]), stockMatchDataContainer.companyName[:baseTitleLength])
         if stockMatchDataContainer.companyName[baseTitleLength - 1:baseTitleLength] is not ' ':
             baseTitleLength += 1
         else:
