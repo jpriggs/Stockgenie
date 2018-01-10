@@ -32,9 +32,9 @@
                     <table>
                         <tbody>
                             {% if stockData %}
-                                {% for key, value in stockData.items() %}
+                                {% for stockInfoLabel, stockInfoValue in stockData.items() %}
                                 <tr>
-                                    <td>{{ key }}</td><td>{{ value }}</td>
+                                    <td>{{ stockInfoLabel }}</td><td>{{ stockInfoValue }}</td>
                                 </tr>
                                 {% endfor %}
                             {% endif %}

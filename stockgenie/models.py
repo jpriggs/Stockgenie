@@ -30,5 +30,8 @@ class StockListData():
         valToSanitize = valToSanitize.lower()
         return ''.join(character for character in valToSanitize if character.isalnum())
 
+    def replaceCaretSymbol(self, valToReplace):
+        return valToReplace.replace('^','-')
+
     def matchesNameOrSymbol(self, searchValue):
         return self.sanitizedStockSymbol == searchValue or self.sanitizedCompanyName == searchValue
