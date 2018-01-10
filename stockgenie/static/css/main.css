@@ -50,11 +50,15 @@ h1 {
     background-color: white;
     border: black 2px solid;
     border-radius: 25px;
+    padding-bottom: 20px;
 }
 .stock-predict-box {
     background-color: white;
     border: black 2px solid;
     border-radius: 25px;
+}
+.footer-container {
+    margin-top: 10px;
 }
 .footer-container p {
     color: black;
@@ -66,16 +70,29 @@ h1 {
 }
 
 .stock-info-box table td:first-child {
+    font-size: 16px;
     font-weight: bold;
     padding-left: 7px;
     padding-right: 10px;
+    padding-bottom: 5px;
     vertical-align: top;
     text-align: right;
     border-right: 1px solid #6f6f6f;
 }
+.stock-predict-box table td {
+    font-size: 16px;
+    font-weight: bold;
+    padding-left: 7px;
+    padding-right: 10px;
+    padding-bottom: 5px;
+    vertical-align: top;
+    text-align: left;
+}
 
 .stock-info-box table td:last-child {
+    font-size: 16px;
     padding-left: 10px;
+
 }
 
 .stock-info-box table.api-data tr {

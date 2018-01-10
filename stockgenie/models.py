@@ -1,62 +1,38 @@
 import json
 import requests
 from datetime import datetime
-datetime.strftime
 
 class ApiStockData():
 
     def __init__(self, timeStamp, price):
-        self.timeStampValue = datatime.strptime(timeStamp, '%Y-%m-%d %H:%M:%S')
+        self.timeStampValue = datetime.strptime(timeStamp, '%Y-%m-%d %H:%M:%S')
         self.priceValue = float(price)
 
-#class Stock():
+class UserSearchData():
 
-    #def stockAPIData():
+    def __init__(self, text):
+        self.sanitizedSearchString = text.lower()
+        self.sanitizedSearchString = ''.join(character for character in self.sanitizedSearchString if character.isalnum())
 
-        # Google variables
-        #symbol = 'NFLX'
-        #interval = str(60) # in seconds
-        #days = 1
-        #period = str(days) # in days
-        #functions = 'd,o,h,c,v'
-        #dataformat = 'cpct'
-        #datatype = 'json'
-        #timestamp = 0.0
-        #timeValue = datetime.fromtimestamp(timestamp)
-        #url = 'https://finance.google.com/finance/getprices?i=' + interval + '&p=' + period + 'd' + '&f=' + functions + '&df=' + dataformat + '&q=' + symbol
-        #testUrl = 'https://finance.google.com/finance?q=NFLX&ouput=json'
+class StockListData():
 
-        #response = requests.get(testUrl)
-        #if response.status_code in (200,):
-            #finData = json.loads(response.content[6:-2].decode('unicode_escape'))
+    def __init__(self, symbol, name, exchange):
 
-            #stockData = dict({
-                            #'Name': '{}'.format(finData['name']),
-                            #'Symbol': '{}'.format(finData['t']),
-                            #'Exchange': '{}'.format(finData['e']),
-                            #'Price': '{}'.format(finData['l']),
-                            #'Open': '{}'.format(finData['op']),
-                            #'PriceChg': '{}'.format(finData['c']),
-                            #'PercentChg': '{}%'.format(finData['cp']),
-                            #'High': '{}'.format(finData['hi']),
-                            #'Low': '{}'.format(finData['lo']),
-                            #'MktCap': '{}'.format(finData['mc']),
-                            #'P/E Ratio': '{}'.format(finData['pe']),
-                            #'Beta': '{}'.format(finData['beta']),
-                            #'EPS': '{}'.format(finData['eps']),
-                            #'52w High': '{}'.format(finData['hi52']),
-                            #'52w Low': '{}'.format(finData['lo52']),
-                            #'Shares': '{}'.format(finData['shares']),
-                            #'Updated': '{}'.format(datetime.now().strftime('%b %d, %Y %H:%M:%S'))
-            #})
+        self.stockSymbol = symbol
+        self.companyName = name
+        self.stockExchange = exchange
 
-        #return stockData
+        self.sanitizedStockSymbol = self.sanitizeValue(symbol)
+        self.sanitizedCompanyName = self.sanitizeValue(name)
+        self.sanitizedStockExchange = self.sanitizeValue(exchange)
 
-# class User(db.Model):
-    #id = db.Column(db.Integer, primary_key=True)
-    #username = db.Column(db.String(80), unique=True, nullable=False)
-    #email = db.Column(db.String(120), unique=True, nullable=False)
-    #cash_balance = db.Column(db.Float(13, 4), nullable=False)
+    def sanitizeValue(self, valToSanitize):
+        valToSanitize = valToSanitize.lower()
+        return ''.join(character for character in valToSanitize if character.isalnum())
 
-    #def __repr__(self):
-        #return '<user %r>' % self.username
+    def replaceCaretSymbol(self, valToReplace):
+        return valToReplace.replace('^','-')
+
+    def matchesNameOrSymbol(self, searchValue):
+        return self.sanitizedStockSymbol == searchValue or self.sanitizedCompanyName == searchValue
+

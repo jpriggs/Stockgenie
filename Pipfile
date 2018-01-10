@@ -41,6 +41,11 @@ numpy = "*"
 pandas = "*"
 flask-script = "*"
 jupyter = "*"
+plotly = "*"
+sklearn = "*"
+scipy = "*"
+matplotlib = "*"
+statsmodels = "*"
 
 
 [dev-packages]
