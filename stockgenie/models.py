@@ -35,3 +35,4 @@ class StockListData():
 
     def matchesNameOrSymbol(self, searchValue):
         return self.sanitizedStockSymbol == searchValue or self.sanitizedCompanyName == searchValue
+

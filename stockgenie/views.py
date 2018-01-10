@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from models import ApiStockData
 import pandas as pd
 import json
 import requests
@@ -15,6 +16,7 @@ from models import ApiStockData, UserSearchData, StockListData
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__)
+
 
 def createStockPriceChart(dataset, name):
 
@@ -188,6 +190,7 @@ def getApiStockValues(symbol):
             return df
     except:
         return None
+
 
 # Views
 @app.route('/')
