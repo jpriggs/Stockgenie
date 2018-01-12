@@ -20,6 +20,15 @@ app = Flask(__name__)
 
 def createStockPriceChart(dataset, name):
 
+    timeStampArray = dataset.index
+    timeDelta = []
+    interval = 1
+    intTimeStamp = []
+    timeDiff = []
+
+    for index, timeStamp in enumerate(timeStampArray):
+        timeDelta.append(interval * index)
+
     # Load the dataset
     data = [go.Scatter(x=dataset.index, y=dataset.Price)]
     config = {'displayModeBar': False}
@@ -103,25 +112,24 @@ def getBasicStockInfo(symbol, name, exchange):
     try:
         response = requests.get(url)
         if response.status_code in (200,):
-            #TODO: Clean up this code to remove the unnecessary .format on ones that don't need it.
             data = json.loads(response.content[6:-2].decode('unicode_escape'))
             stockData = dict({
-                            'Name': '{}'.format(data['name']),
-                            'Symbol': '{}'.format(data['t']),
-                            'Exchange': '{}'.format(data['e']),
-                            'Price': '{}'.format(data['l']),
-                            'Open': '{}'.format(data['op']),
-                            '$ Chg': '{}'.format(data['c']),
-                            '% Chg': '{}%'.format(data['cp']),
-                            'High': '{}'.format(data['hi']),
-                            'Low': '{}'.format(data['lo']),
-                            'MktCap': '{}'.format(data['mc']),
-                            'P/E Ratio': '{}'.format(data['pe']),
-                            'Beta': '{}'.format(data['beta']),
-                            'EPS': '{}'.format(data['eps']),
-                            '52w High': '{}'.format(data['hi52']),
-                            '52w Low': '{}'.format(data['lo52']),
-                            'Shares': '{}'.format(data['shares']),
+                            'Name': data['name'],
+                            'Symbol': data['t'],
+                            'Exchange': data['e'],
+                            'Price': data['l'],
+                            'Open': data['op'],
+                            '$ Chg': data['c'],
+                            '% Chg': data['cp'],
+                            'High': data['hi'],
+                            'Low': data['lo'],
+                            'MktCap': data['mc'],
+                            'P/E Ratio': data['pe'],
+                            'Beta': data['beta'],
+                            'EPS': data['eps'],
+                            '52w High': data['hi52'],
+                            '52w Low': data['lo52'],
+                            'Shares': data['shares'],
                             'Updated': '{}'.format(datetime.now().strftime(dateTimeFormat))
             })
     except:
@@ -207,25 +215,15 @@ def index():
     stockMatchDataContainer = StockListData(stockMatchResult.stockSymbol, stockMatchResult.companyName, stockMatchResult.stockExchange)
 
     # Gets API values from Alphavantage (pricing) and Google Finance (Stock Info)
-    pricingData = getApiStockValues(stockMatchDataContainer.replaceCaretSymbol(stockMatchResult.stockSymbol))
+    pricingData = getApiStockValues(stockMatchDataContainer.getApiSafeSymbol(stockMatchResult.stockSymbol))
     if pricingData is None:
         return render_template('base.html')
-    stockData =  getBasicStockInfo(stockMatchDataContainer.replaceCaretSymbol(stockMatchResult.stockSymbol), stockMatchDataContainer.companyName, stockMatchDataContainer.stockExchange)
+    stockData =  getBasicStockInfo(stockMatchDataContainer.getApiSafeSymbol(stockMatchResult.stockSymbol), stockMatchDataContainer.companyName, stockMatchDataContainer.stockExchange)
     if stockData is None:
         return render_template('base.html')
 
-    # Adjusts the chart title length to fit the chart size
-    # TODO: Offload this code to the StockListData class
-    baseTitleLength = 32
-    for character in stockMatchDataContainer.companyName[baseTitleLength:]:
-        if stockMatchDataContainer.companyName[baseTitleLength - 1:baseTitleLength] is not ' ':
-            baseTitleLength += 1
-        else:
-            baseTitleLength -= 1
-            break
-
     # Creates a chart based on the price data returned from the API
-    chart = createStockPriceChart(pricingData, stockMatchDataContainer.companyName[:baseTitleLength])
+    chart = createStockPriceChart(pricingData, stockMatchDataContainer.companyName)
 
     return render_template('base.html', stockData=stockData, chart=chart)
 

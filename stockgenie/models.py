@@ -8,6 +8,12 @@ class ApiStockData():
         self.timeStampValue = datetime.strptime(timeStamp, '%Y-%m-%d %H:%M:%S')
         self.priceValue = float(price)
 
+class getChartData(ApiStockData):
+
+    def __init__(self, interval, function):
+        self.timeInterval = interval
+        self.apiLookupFunction = function
+
 class UserSearchData():
 
     def __init__(self, text):
@@ -30,9 +36,18 @@ class StockListData():
         valToSanitize = valToSanitize.lower()
         return ''.join(character for character in valToSanitize if character.isalnum())
 
-    def replaceCaretSymbol(self, valToReplace):
+    def getApiSafeSymbol(self, valToReplace):
         return valToReplace.replace('^','-')
+
+    def getChartSafeTitleLength(self, valToSanitize):
+        baseTitleLength = 32
+        for character in valToSanitize[baseTitleLength:]:
+            if valToSanitize[baseTitleLength - 1:baseTitleLength] is not ' ':
+                baseTitleLength += 1
+            else:
+                baseTitleLength -= 1
+            break
+        return valToSanitize[:baseTitleLength]
 
     def matchesNameOrSymbol(self, searchValue):
         return self.sanitizedStockSymbol == searchValue or self.sanitizedCompanyName == searchValue
-
