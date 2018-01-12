@@ -4,8 +4,13 @@ from datetime import datetime
 
 class ApiStockData():
 
-    def __init__(self, timeStamp, price):
-        self.timeStampValue = datetime.strptime(timeStamp, '%Y-%m-%d %H:%M:%S')
+    def __init__(self, timeStamp, price, function):
+
+        # Formats the datetime value to match either an intraday or daily stock value
+        if function == 'TIME_SERIES_INTRADAY':
+            self.timeStampValue = datetime.strptime(timeStamp, '%Y-%m-%d %H:%M:%S')
+        else:
+            self.timeStampValue = datetime.strptime(timeStamp, '%Y-%m-%d')
         self.priceValue = float(price)
 
 class UserSearchData():
@@ -15,10 +20,11 @@ class UserSearchData():
         self.sanitizedSearchString = ''.join(character for character in self.sanitizedSearchString if character.isalnum())
         self.apiLookupFunction = function
 
+        # Formats the interval query used in the API url based hitting the intraday or daily API 
         if function == 'TIME_SERIES_INTRADAY':
             self.timeInterval = str(interval) + 'min'
         else:
-            self.timeInterval = interval
+            self.timeInterval = "''"
 
 class StockListData():
 

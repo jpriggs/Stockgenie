@@ -164,37 +164,31 @@ def getApiStockValues(symbol, interval, function):
 
     apiPriceKey = '4. close'
     apikey = 'Z0QNUSV1HF3JBMRR'
-    #function = 'TIME_SERIES_INTRADAY'
-    #minutes = 1
-    #interval = str(minutes) + 'min'
     outputsize = 'compact'
     datatype = 'json'
-    url = 'https://www.alphavantage.co/query?function={}&symbol={}&interval={}&outputsize={}&datatype={}&apikey={}'.format(function, symbol, interval, outputsize, datatype, apikey)
+    url =  'https://www.alphavantage.co/query?function={}&symbol={}&outputsize={}&datatype={}&apikey={}{}'.format(function, symbol, outputsize, datatype, apikey, '&interval=' + interval if function == 'TIME_SERIES_INTRADAY' else '')
+    #url = 'https://www.alphavantage.co/query?function={}&symbol={}&interval={}&outputsize={}&datatype={}&apikey={}'.format(function, symbol, interval, outputsize, datatype, apikey)
 
+    # Checks that the API returns a response and JSON values or returns None
     try:
         response = requests.get(url)
         if response.status_code in (200,):
             pricingData = json.loads(response.content.decode('unicode_escape'))
             timeStampData = pricingData[list(pricingData)[1]]
 
-            # Adds timestamp values as indexes and all close price values to a list
             stockHistoricalPrices = []
             for timeStampValue in timeStampData:
                 priceValue = timeStampData[timeStampValue][apiPriceKey]
-                stockHistoricalPrices.append(ApiStockData(timeStampValue, priceValue))
+                # Instantiates the ApiStockData class passing in timestamp and price values based on an intraday or daily time series
+                apiStockDataObject = ApiStockData(timeStampValue, priceValue, function)
+                stockHistoricalPrices.append([apiStockDataObject.timeStampValue, apiStockDataObject.priceValue])
 
-            # Adds objects from a class constructor to a list
-            stockHistoricalPrices = [ApiStockData(timeStampKey, timeStampData[timeStampKey][apiPriceKey]) for timeStampKey in timeStampData]
+            # Sorts the data by timestamp from oldest to newest
+            stockTimeSeriesDataset = sorted(stockHistoricalPrices, key=lambda sortIterator: sortIterator[0])
 
-            stockTimeSeriesDataset = []
-            labels = ['Time', 'Price']
-            # Iterates through the sorted data and displays the timestamp and closing prices
-            for obj in sorted(stockHistoricalPrices, key=lambda sortObjectIteration: sortObjectIteration.timeStampValue, reverse=False):
-                stockTimeSeriesDataset.append([obj.timeStampValue, obj.priceValue])
-
-            # Creates a dataframe using Pandas
-            df = pd.DataFrame.from_records(stockTimeSeriesDataset, columns=labels, index='Time')
-
+            # Creates a dataframe from the timestamps and prices using Pandas
+            labels = ['Timestamp', 'Price']
+            df = pd.DataFrame.from_records(stockTimeSeriesDataset, columns=labels, index='Timestamp')
             return df
     except:
         return None
@@ -205,8 +199,8 @@ def getApiStockValues(symbol, interval, function):
 @app.route('/index')
 def index():
     userSearchedStock = request.args.get('search-item')
-    userInterval = 1 # temp value
-    userFunction = 'TIME_SERIES_INTRADAY' # TIME_SERIES_INTRADAY or TIME_SERIES_DAILY - temp value
+    userInterval = 1 # in minutes - temp value
+    userFunction = 'TIME_SERIES_DAILY' # TIME_SERIES_INTRADAY or TIME_SERIES_DAILY - temp value
     if not userSearchedStock:
         return render_template('base.html')
 
@@ -214,7 +208,7 @@ def index():
     userInputSearchValues = UserSearchData(userSearchedStock, userInterval, userFunction)
 
     stockMatchResult = stockListSearch(userInputSearchValues.sanitizedSearchString)
-    # Validates that a user inputted matched stock is returned
+    # Validates that a user inputted stock match is returned
     if stockMatchResult is None:
         return render_template('base.html')
     stockMatchDataContainer = StockListData(stockMatchResult.stockSymbol, stockMatchResult.companyName, stockMatchResult.stockExchange)
