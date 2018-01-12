@@ -8,17 +8,17 @@ class ApiStockData():
         self.timeStampValue = datetime.strptime(timeStamp, '%Y-%m-%d %H:%M:%S')
         self.priceValue = float(price)
 
-class getChartData(ApiStockData):
-
-    def __init__(self, interval, function):
-        self.timeInterval = interval
-        self.apiLookupFunction = function
-
 class UserSearchData():
 
-    def __init__(self, text):
+    def __init__(self, text, interval, function):
         self.sanitizedSearchString = text.lower()
         self.sanitizedSearchString = ''.join(character for character in self.sanitizedSearchString if character.isalnum())
+        self.apiLookupFunction = function
+
+        if function == 'TIME_SERIES_INTRADAY':
+            self.timeInterval = str(interval) + 'min'
+        else:
+            self.timeInterval = interval
 
 class StockListData():
 

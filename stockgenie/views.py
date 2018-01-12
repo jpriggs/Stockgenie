@@ -88,7 +88,6 @@ def stockListSearch(searchString):
     if not searchString:
         print ("searchString error")
         return None
-    searchDataContainer = UserSearchData(searchString)
 
     # Loads and sanitizes the stock dictionary to match any user input
     rawStockSymbol = ''
@@ -96,8 +95,9 @@ def stockListSearch(searchString):
     for thisStockSymbol, thisStockData in rawStocksDict.items():
         #thisStockData contains [stock name, exchange name]
         stockValues = StockListData(thisStockSymbol, thisStockData[0], thisStockData[1])
+
         # Checks if the user search string matches stock symbol or company name in the dictionary
-        if stockValues.matchesNameOrSymbol(searchDataContainer.sanitizedSearchString):
+        if stockValues.matchesNameOrSymbol(searchString):
             return stockValues
 
     print ('Error:\tNo returned values to function')
@@ -160,13 +160,13 @@ def getBasicStockInfo(symbol, name, exchange):
     return stockData
 
 # Gets the external stock price API
-def getApiStockValues(symbol):
+def getApiStockValues(symbol, interval, function):
 
     apiPriceKey = '4. close'
     apikey = 'Z0QNUSV1HF3JBMRR'
-    function = 'TIME_SERIES_INTRADAY'
-    minutes = 1
-    interval = str(minutes) + 'min'
+    #function = 'TIME_SERIES_INTRADAY'
+    #minutes = 1
+    #interval = str(minutes) + 'min'
     outputsize = 'compact'
     datatype = 'json'
     url = 'https://www.alphavantage.co/query?function={}&symbol={}&interval={}&outputsize={}&datatype={}&apikey={}'.format(function, symbol, interval, outputsize, datatype, apikey)
@@ -205,25 +205,30 @@ def getApiStockValues(symbol):
 @app.route('/index')
 def index():
     userSearchedStock = request.args.get('search-item')
+    userInterval = 1 # temp value
+    userFunction = 'TIME_SERIES_INTRADAY' # TIME_SERIES_INTRADAY or TIME_SERIES_DAILY - temp value
     if not userSearchedStock:
         return render_template('base.html')
 
-    stockMatchResult = stockListSearch(userSearchedStock)
+    # Instantiates the user search inputted values class
+    userInputSearchValues = UserSearchData(userSearchedStock, userInterval, userFunction)
+
+    stockMatchResult = stockListSearch(userInputSearchValues.sanitizedSearchString)
     # Validates that a user inputted matched stock is returned
     if stockMatchResult is None:
         return render_template('base.html')
     stockMatchDataContainer = StockListData(stockMatchResult.stockSymbol, stockMatchResult.companyName, stockMatchResult.stockExchange)
 
     # Gets API values from Alphavantage (pricing) and Google Finance (Stock Info)
-    pricingData = getApiStockValues(stockMatchDataContainer.getApiSafeSymbol(stockMatchResult.stockSymbol))
-    if pricingData is None:
+    timeSeriesPriceData = getApiStockValues(stockMatchDataContainer.getApiSafeSymbol(stockMatchResult.stockSymbol), userInputSearchValues.timeInterval, userInputSearchValues.apiLookupFunction)
+    if timeSeriesPriceData is None:
         return render_template('base.html')
     stockData =  getBasicStockInfo(stockMatchDataContainer.getApiSafeSymbol(stockMatchResult.stockSymbol), stockMatchDataContainer.companyName, stockMatchDataContainer.stockExchange)
     if stockData is None:
         return render_template('base.html')
 
     # Creates a chart based on the price data returned from the API
-    chart = createStockPriceChart(pricingData, stockMatchDataContainer.companyName)
+    chart = createStockPriceChart(timeSeriesPriceData, stockMatchDataContainer.companyName)
 
     return render_template('base.html', stockData=stockData, chart=chart)
 
