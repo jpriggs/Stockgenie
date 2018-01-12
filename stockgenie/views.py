@@ -18,20 +18,17 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 app = Flask(__name__)
 
 
-def createStockPriceChart(dataset, name):
+def createStockPriceChart(dataset, name, interval):
 
     timeStampArray = dataset.index
     timeDelta = []
-    interval = 1
-    intTimeStamp = []
-    timeDiff = []
 
     for index, timeStamp in enumerate(timeStampArray):
         timeDelta.append(interval * index)
 
     # Load the dataset
-    data = [go.Scatter(x=dataset.index, y=dataset.Price)]
-    config = {'displayModeBar': False}
+    data = [go.Scatter(x=dataset.index, y=dataset.Price, name='Price History')]
+    config = {'displayModeBar': False, 'connectgaps': True}
     layout = go.Layout(
         title=name + ' Price History',
         titlefont=dict(
@@ -39,7 +36,8 @@ def createStockPriceChart(dataset, name):
             size=20,
             color='#000'
         ),
-        showlegend=False,
+        showlegend=True,
+        legend=dict(orientation='h'),
         margin=go.Margin(
             l=85,
             r=35,
@@ -167,15 +165,13 @@ def getApiStockValues(symbol, interval, function):
     outputsize = 'compact'
     datatype = 'json'
     url =  'https://www.alphavantage.co/query?function={}&symbol={}&outputsize={}&datatype={}&apikey={}{}'.format(function, symbol, outputsize, datatype, apikey, '&interval=' + interval if function == 'TIME_SERIES_INTRADAY' else '')
-    #url = 'https://www.alphavantage.co/query?function={}&symbol={}&interval={}&outputsize={}&datatype={}&apikey={}'.format(function, symbol, interval, outputsize, datatype, apikey)
-
+    print(url)
     # Checks that the API returns a response and JSON values or returns None
     try:
         response = requests.get(url)
         if response.status_code in (200,):
-            pricingData = json.loads(response.content.decode('unicode_escape'))
-            timeStampData = pricingData[list(pricingData)[1]]
-
+            jsonApiObject = json.loads(response.content.decode('unicode_escape'))
+            timeStampData = jsonApiObject[list(jsonApiObject)[1]]
             stockHistoricalPrices = []
             for timeStampValue in timeStampData:
                 priceValue = timeStampData[timeStampValue][apiPriceKey]
@@ -193,14 +189,13 @@ def getApiStockValues(symbol, interval, function):
     except:
         return None
 
-
 # Views
 @app.route('/')
 @app.route('/index')
 def index():
     userSearchedStock = request.args.get('search-item')
     userInterval = 1 # in minutes - temp value
-    userFunction = 'TIME_SERIES_DAILY' # TIME_SERIES_INTRADAY or TIME_SERIES_DAILY - temp value
+    userFunction = 'TIME_SERIES_INTRADAY' # TIME_SERIES_INTRADAY or TIME_SERIES_DAILY - temp value
     if not userSearchedStock:
         return render_template('base.html')
 
@@ -215,14 +210,25 @@ def index():
 
     # Gets API values from Alphavantage (pricing) and Google Finance (Stock Info)
     timeSeriesPriceData = getApiStockValues(stockMatchDataContainer.getApiSafeSymbol(stockMatchResult.stockSymbol), userInputSearchValues.timeInterval, userInputSearchValues.apiLookupFunction)
+    # Some stocks won't return one of the API's time series, so the other time series is tried
+    if timeSeriesPriceData is None:
+        if userInputSearchValues.apiLookupFunction == 'TIME_SERIES_INTRADAY':
+            userInputSearchValues.apiLookupFunction = 'TIME_SERIES_DAILY'
+        else:
+            userInputSearchValues.apiLookupFunction = 'TIME_SERIES_INTRADAY'
+            userInputSearchValues.timeInterval = str(1) + 'min'
+
+        timeSeriesPriceData = getApiStockValues(stockMatchDataContainer.getApiSafeSymbol(stockMatchResult.stockSymbol), userInputSearchValues.timeInterval, userInputSearchValues.apiLookupFunction)
+
     if timeSeriesPriceData is None:
         return render_template('base.html')
+
     stockData =  getBasicStockInfo(stockMatchDataContainer.getApiSafeSymbol(stockMatchResult.stockSymbol), stockMatchDataContainer.companyName, stockMatchDataContainer.stockExchange)
     if stockData is None:
         return render_template('base.html')
 
     # Creates a chart based on the price data returned from the API
-    chart = createStockPriceChart(timeSeriesPriceData, stockMatchDataContainer.companyName)
+    chart = createStockPriceChart(timeSeriesPriceData, stockMatchDataContainer.companyName, userInterval)
 
     return render_template('base.html', stockData=stockData, chart=chart)
 

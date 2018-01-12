@@ -20,7 +20,7 @@ class UserSearchData():
         self.sanitizedSearchString = ''.join(character for character in self.sanitizedSearchString if character.isalnum())
         self.apiLookupFunction = function
 
-        # Formats the interval query used in the API url based hitting the intraday or daily API 
+        # Formats the interval query used in the API url based hitting the intraday or daily API
         if function == 'TIME_SERIES_INTRADAY':
             self.timeInterval = str(interval) + 'min'
         else:
