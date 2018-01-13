@@ -7,8 +7,7 @@ import requests
 import plotly
 import plotly.graph_objs as go
 import numpy as np
-import matplotlib.dates as mdates
-from scipy import stats
+from sklearn import linear_model
 
 from flask import Flask, render_template, url_for, request, redirect, flash
 from models import ApiStockData, UserSearchData, StockListData
@@ -17,18 +16,29 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__)
 
-
 def createStockPriceChart(dataset, name, interval):
 
     timeStampArray = dataset.index
-    timeDelta = []
+    pricesArray = [price for price in dataset.Price]
 
+    # Creates a list of time deltas representing the the difference between the time series datapoints
+    timeDelta = []
     for index, timeStamp in enumerate(timeStampArray):
         timeDelta.append(interval * index)
 
-    # Load the dataset
-    data = [go.Scatter(x=dataset.index, y=dataset.Price, name='Price History')]
-    config = {'displayModeBar': False, 'connectgaps': True}
+    # Regression Prototyping
+    linearModel = linear_model.LinearRegression()
+    times = np.reshape(timeDelta, (len(timeDelta), 1))
+    prices = np.reshape(pricesArray, (len(pricesArray), 1))
+    linearModel.fit(times, prices)
+    predictedPrice = linearModel.predict(times)
+    predictedPriceList = [column for row in predictedPrice for column in row]
+    print(predictedPrice[0][0], linearModel.coef_[0][0], linearModel.intercept_[0])
+
+    # Loads the price data, time series data, and regression line data into the chart
+    priceHistoryLine = go.Scatter(x=dataset.index, y=dataset.Price, name='Price History')
+    regressionLine = go.Scatter(x=dataset.index, y=predictedPriceList, name='Regression')
+    config = {'displayModeBar': False}
     layout = go.Layout(
         title=name + ' Price History',
         titlefont=dict(
@@ -76,7 +86,8 @@ def createStockPriceChart(dataset, name, interval):
             tickangle=45
         )
     )
-    fig = go.Figure(data=data, layout=layout)
+    data = [priceHistoryLine, regressionLine]
+    fig = dict(data=data, layout=layout)
 
     return plotly.offline.plot(fig, config=config, output_type='div', show_link=False, link_text=False)
 
@@ -165,7 +176,7 @@ def getApiStockValues(symbol, interval, function):
     outputsize = 'compact'
     datatype = 'json'
     url =  'https://www.alphavantage.co/query?function={}&symbol={}&outputsize={}&datatype={}&apikey={}{}'.format(function, symbol, outputsize, datatype, apikey, '&interval=' + interval if function == 'TIME_SERIES_INTRADAY' else '')
-    print(url)
+
     # Checks that the API returns a response and JSON values or returns None
     try:
         response = requests.get(url)
