@@ -1,43 +1,23 @@
 import os
 from datetime import datetime
-from models import ApiStockData
 import pandas as pd
 import json
 import requests
 import plotly
 import plotly.graph_objs as go
-import numpy as np
-from sklearn import linear_model
 
 from flask import Flask, render_template, url_for, request, redirect, flash
-from models import ApiStockData, UserSearchData, StockListData
+from models import ApiStockData, Regression, UserSearchData, StockListData
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__)
 
-def createStockPriceChart(dataset, name, interval):
-
-    timeStampArray = dataset.index
-    pricesArray = [price for price in dataset.Price]
-
-    # Creates a list of time deltas representing the the difference between the time series datapoints
-    timeDelta = []
-    for index, timeStamp in enumerate(timeStampArray):
-        timeDelta.append(interval * index)
-
-    # Regression Prototyping
-    linearModel = linear_model.LinearRegression()
-    times = np.reshape(timeDelta, (len(timeDelta), 1))
-    prices = np.reshape(pricesArray, (len(pricesArray), 1))
-    linearModel.fit(times, prices)
-    predictedPrice = linearModel.predict(times)
-    predictedPriceList = [column for row in predictedPrice for column in row]
-    print(predictedPrice[0][0], linearModel.coef_[0][0], linearModel.intercept_[0])
+def createStockPriceChart(dataset, name, regression):
 
     # Loads the price data, time series data, and regression line data into the chart
-    priceHistoryLine = go.Scatter(x=dataset.index, y=dataset.Price, name='Price History')
-    regressionLine = go.Scatter(x=dataset.index, y=predictedPriceList, name='Regression')
+    priceHistoryLine = go.Scatter(x=dataset.index, y=dataset.Price, name='Price History', line=dict(color='#3030DB', width=3))
+    regressionLine = go.Scatter(x=dataset.index, y=regression, name='Regression', line=dict(color='#CC2446', width=3))
     config = {'displayModeBar': False}
     layout = go.Layout(
         title=name + ' Price History',
@@ -47,13 +27,13 @@ def createStockPriceChart(dataset, name, interval):
             color='#000'
         ),
         showlegend=True,
-        legend=dict(orientation='h'),
+        legend=dict(orientation='v', xanchor='auto', yanchor='bottom'),
         margin=go.Margin(
             l=85,
             r=35,
             b=50,
             t=50,
-            pad=2
+            pad=0
         ),
         xaxis=dict(
             title='Time',
@@ -175,7 +155,7 @@ def getApiStockValues(symbol, interval, function):
     apikey = 'Z0QNUSV1HF3JBMRR'
     outputsize = 'compact'
     datatype = 'json'
-    url =  'https://www.alphavantage.co/query?function={}&symbol={}&outputsize={}&datatype={}&apikey={}{}'.format(function, symbol, outputsize, datatype, apikey, '&interval=' + interval if function == 'TIME_SERIES_INTRADAY' else '')
+    url =  'https://www.alphavantage.co/query?function={}&symbol={}&outputsize={}&datatype={}&apikey={}{}'.format(function, symbol, outputsize, datatype, apikey, '&interval=' + (str(interval) + 'min') if function == 'TIME_SERIES_INTRADAY' else '')
 
     # Checks that the API returns a response and JSON values or returns None
     try:
@@ -223,12 +203,7 @@ def index():
     timeSeriesPriceData = getApiStockValues(stockMatchDataContainer.getApiSafeSymbol(stockMatchResult.stockSymbol), userInputSearchValues.timeInterval, userInputSearchValues.apiLookupFunction)
     # Some stocks won't return one of the API's time series, so the other time series is tried
     if timeSeriesPriceData is None:
-        if userInputSearchValues.apiLookupFunction == 'TIME_SERIES_INTRADAY':
-            userInputSearchValues.apiLookupFunction = 'TIME_SERIES_DAILY'
-        else:
-            userInputSearchValues.apiLookupFunction = 'TIME_SERIES_INTRADAY'
-            userInputSearchValues.timeInterval = str(1) + 'min'
-
+        userInputSearchValues.switchLookupFunction()
         timeSeriesPriceData = getApiStockValues(stockMatchDataContainer.getApiSafeSymbol(stockMatchResult.stockSymbol), userInputSearchValues.timeInterval, userInputSearchValues.apiLookupFunction)
 
     if timeSeriesPriceData is None:
@@ -238,10 +213,21 @@ def index():
     if stockData is None:
         return render_template('base.html')
 
-    # Creates a chart based on the price data returned from the API
-    chart = createStockPriceChart(timeSeriesPriceData, stockMatchDataContainer.companyName, userInterval)
+    # Generate regression data
+    regressionData = Regression(timeSeriesPriceData, userInputSearchValues.timeInterval, userInputSearchValues.apiLookupFunction)
+    regressionLine = regressionData.calculateRegressionLine()
+    predictedPrice = regressionData.calculatePricePrediction()
 
-    return render_template('base.html', stockData=stockData, chart=chart)
+    recommendation = ''
+    if predictedPrice > timeSeriesPriceData.Price[99]:
+        recommendation = 'BUY'
+    else:
+        recommendation = "DON'T BUY"
+
+    # Creates a chart based on the price data returned from the API
+    chart = createStockPriceChart(timeSeriesPriceData, stockMatchDataContainer.companyName, regressionLine)
+
+    return render_template('base.html', stockData=stockData, chart=chart, predictedPrice=float(predictedPrice[0]), recommendation=recommendation)
 
 # Error handling
 @app.errorhandler(404)
