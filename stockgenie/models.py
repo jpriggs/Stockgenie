@@ -19,12 +19,12 @@ class Regression():
 
     def __init__(self, dataset, interval, function):
         self.timeStampList = dataset.index
-        self.timeDeltaList = [index for index, timeStamp in enumerate(self.timeStampList)]
+        self.timeStampValue = range(0, len(self.timeStampList))
         self.timeInterval = interval
         self.apiLookupFunction = function
 
         self.linearModel = linear_model.LinearRegression()
-        self.times = np.reshape(self.timeDeltaList, (len(self.timeDeltaList), 1))
+        self.times = np.reshape(self.timeStampValue, (len(self.timeStampValue), 1))
         self.prices = np.reshape(dataset.Price, (len(dataset.Price), 1))
         self.linearModel.fit(self.times, self.prices)
 

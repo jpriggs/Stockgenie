@@ -149,7 +149,7 @@ def getBasicStockInfo(symbol, name, exchange):
     return stockData
 
 # Gets the external stock price API
-def getApiStockValues(symbol, interval, function):
+def getApiStockValues(searchString, symbol, interval, function):
 
     apiPriceKey = '4. close'
     apikey = 'Z0QNUSV1HF3JBMRR'
@@ -163,22 +163,35 @@ def getApiStockValues(symbol, interval, function):
         if response.status_code in (200,):
             jsonApiObject = json.loads(response.content.decode('unicode_escape'))
             timeStampData = jsonApiObject[list(jsonApiObject)[1]]
-            stockHistoricalPrices = []
-            for timeStampValue in timeStampData:
-                priceValue = timeStampData[timeStampValue][apiPriceKey]
-                # Instantiates the ApiStockData class passing in timestamp and price values based on an intraday or daily time series
-                apiStockDataObject = ApiStockData(timeStampValue, priceValue, function)
-                stockHistoricalPrices.append([apiStockDataObject.timeStampValue, apiStockDataObject.priceValue])
-
-            # Sorts the data by timestamp from oldest to newest
-            stockTimeSeriesDataset = sorted(stockHistoricalPrices, key=lambda sortIterator: sortIterator[0])
-
-            # Creates a dataframe from the timestamps and prices using Pandas
-            labels = ['Timestamp', 'Price']
-            df = pd.DataFrame.from_records(stockTimeSeriesDataset, columns=labels, index='Timestamp')
-            return df
+    except:
+        userInputSearchValues = UserSearchData(searchString, interval, function)
+        userInputSearchValues.switchLookupFunction()
+        function = userInputSearchValues.apiLookupFunction
+        interval = userInputSearchValues.timeInterval
+        url =  'https://www.alphavantage.co/query?function={}&symbol={}&outputsize={}&datatype={}&apikey={}{}'.format(function, symbol, outputsize, datatype, apikey, '&interval=' + (str(interval) + 'min') if function == 'TIME_SERIES_INTRADAY' else '')
+    try:
+        response = requests.get(url)
+        if response.status_code in (200,):
+            jsonApiObject = json.loads(response.content.decode('unicode_escape'))
+            timeStampData = jsonApiObject[list(jsonApiObject)[1]]
     except:
         return None
+
+    stockHistoricalPrices = []
+    for timeStampValue in timeStampData:
+        priceValue = timeStampData[timeStampValue][apiPriceKey]
+        # Instantiates the ApiStockData class passing in timestamp and price values based on an intraday or daily time series
+        apiStockDataObject = ApiStockData(timeStampValue, priceValue, function)
+        stockHistoricalPrices.append([apiStockDataObject.timeStampValue, apiStockDataObject.priceValue])
+
+    # Sorts the data by timestamp from oldest to newest
+    stockTimeSeriesDataset = sorted(stockHistoricalPrices, key=lambda sortIterator: sortIterator[0])
+
+    # Creates a dataframe from the timestamps and prices using Pandas
+    labels = ['Timestamp', 'Price']
+    df = pd.DataFrame.from_records(stockTimeSeriesDataset, columns=labels, index='Timestamp')
+
+    return df
 
 # Views
 @app.route('/')
@@ -193,19 +206,14 @@ def index():
     # Instantiates the user search inputted values class
     userInputSearchValues = UserSearchData(userSearchedStock, userInterval, userFunction)
 
+    # Gets the user matched stock result
     stockMatchResult = stockListSearch(userInputSearchValues.sanitizedSearchString)
-    # Validates that a user inputted stock match is returned
     if stockMatchResult is None:
         return render_template('base.html')
     stockMatchDataContainer = StockListData(stockMatchResult.stockSymbol, stockMatchResult.companyName, stockMatchResult.stockExchange)
 
     # Gets API values from Alphavantage (pricing) and Google Finance (Stock Info)
-    timeSeriesPriceData = getApiStockValues(stockMatchDataContainer.getApiSafeSymbol(stockMatchResult.stockSymbol), userInputSearchValues.timeInterval, userInputSearchValues.apiLookupFunction)
-    # Some stocks won't return one of the API's time series, so the other time series is tried
-    if timeSeriesPriceData is None:
-        userInputSearchValues.switchLookupFunction()
-        timeSeriesPriceData = getApiStockValues(stockMatchDataContainer.getApiSafeSymbol(stockMatchResult.stockSymbol), userInputSearchValues.timeInterval, userInputSearchValues.apiLookupFunction)
-
+    timeSeriesPriceData = getApiStockValues(userSearchedStock, stockMatchDataContainer.getApiSafeSymbol(stockMatchResult.stockSymbol), userInputSearchValues.timeInterval, userInputSearchValues.apiLookupFunction)
     if timeSeriesPriceData is None:
         return render_template('base.html')
 
@@ -218,6 +226,7 @@ def index():
     regressionLine = regressionData.calculateRegressionLine()
     predictedPrice = regressionData.calculatePricePrediction()
 
+    # Prototype prediction recommendation based on current price and predicted price
     recommendation = ''
     if predictedPrice > timeSeriesPriceData.Price[99]:
         recommendation = 'BUY'
