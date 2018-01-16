@@ -162,8 +162,7 @@ def getApiStockValues(symbol, searchData):
     jsonApiObject = None
     try:
         intervalStr = '&interval=' + (str(searchData.timeInterval) + 'min') if searchData.apiLookupFunction == 'TIME_SERIES_INTRADAY' else ''
-        url = urlBase.format(searchData.apiLookupFunction, symbol, outputsize, datatype, apikey, intervalStr)
-        response = requests.get(url)
+        response = requests.get(urlBase.format(searchData.apiLookupFunction, symbol, outputsize, datatype, apikey, intervalStr))
         if response.status_code in (200,):
             jsonApiObject = json.loads(response.content.decode('unicode_escape'))
         if 'Error Message' in jsonApiObject:
@@ -172,12 +171,13 @@ def getApiStockValues(symbol, searchData):
     except ValueError:
         searchData.switchLookupFunction()
         intervalStr = '&interval=' + (str(searchData.timeInterval) + 'min') if searchData.apiLookupFunction == 'TIME_SERIES_INTRADAY' else ''
-        url = urlBase.format(searchData.apiLookupFunction, symbol, outputsize, datatype, apikey, intervalStr)
-        response = requests.get(url)
+        response = requests.get(urlBase.format(searchData.apiLookupFunction, symbol, outputsize, datatype, apikey, intervalStr))
         if response.status_code in (200,):
             jsonApiObject = json.loads(response.content.decode('unicode_escape'))
         if 'Error Message' in jsonApiObject:
             return None
+    except:
+        return None
 
     # Ensures that API data has been returned
     if jsonApiObject is None:
@@ -204,7 +204,7 @@ def getApiStockValues(symbol, searchData):
 def index():
     userSearchedStock = request.args.get('search-item')
     userInterval = 1 # in minutes - temp value
-    userFunction = 'TIME_SERIES_DAILY' # TIME_SERIES_INTRADAY or TIME_SERIES_DAILY - temp value
+    userFunction = 'TIME_SERIES_INTRADAY' # TIME_SERIES_INTRADAY or TIME_SERIES_DAILY - temp value
     if not userSearchedStock:
         return render_template('base.html')
 
