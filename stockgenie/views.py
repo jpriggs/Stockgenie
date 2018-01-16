@@ -162,19 +162,19 @@ def getApiStockValues(searchString, symbol, interval, function):
         response = requests.get(url)
         if response.status_code in (200,):
             jsonApiObject = json.loads(response.content.decode('unicode_escape'))
-            timeStampData = jsonApiObject[list(jsonApiObject)[1]]
     except:
         userInputSearchValues = UserSearchData(searchString, interval, function)
         userInputSearchValues.switchLookupFunction()
         function = userInputSearchValues.apiLookupFunction
         interval = userInputSearchValues.timeInterval
         url =  'https://www.alphavantage.co/query?function={}&symbol={}&outputsize={}&datatype={}&apikey={}{}'.format(function, symbol, outputsize, datatype, apikey, '&interval=' + (str(interval) + 'min') if function == 'TIME_SERIES_INTRADAY' else '')
-    try:
         response = requests.get(url)
         if response.status_code in (200,):
             jsonApiObject = json.loads(response.content.decode('unicode_escape'))
-            timeStampData = jsonApiObject[list(jsonApiObject)[1]]
-    except:
+
+    timeStampData = jsonApiObject[list(jsonApiObject)[1]]
+    # Ensures that API data has been retrieved
+    if timeStampData is None:
         return None
 
     # Adds and sorts the API data from oldest to newest data points
@@ -187,7 +187,7 @@ def getApiStockValues(searchString, symbol, interval, function):
 
     # Creates a dataframe from the timestamps and prices using Pandas
     labels = ['Timestamp', 'Price']
-    df = pd.DataFrame.from_records(stockTimeSeriesDataset, columns=labels, index='Timestamp')
+    df = pd.DataFrame.from_records(stockHistoricalPrices, columns=labels, index='Timestamp')
 
     return df
 
