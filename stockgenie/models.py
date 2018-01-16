@@ -9,24 +9,23 @@ class ApiStockData():
     def __init__(self, timeStamp, price, function):
 
         # Formats the datetime value to match either an intraday or daily stock value
+        dtFormat = '%Y-%m-%d'
         if function == 'TIME_SERIES_INTRADAY':
-            self.timeStampValue = datetime.strptime(timeStamp, '%Y-%m-%d %H:%M:%S')
-        else:
-            self.timeStampValue = datetime.strptime(timeStamp, '%Y-%m-%d')
+            dtFormat = '%Y-%m-%d %H:%M:%S'
+        self.timeStampValue = datetime.strptime(timeStamp, dtFormat)
         self.priceValue = float(price)
 
 class Regression():
 
     def __init__(self, dataset, interval, function):
         self.timeStampList = dataset.index
-        self.priceList = [price for price in dataset.Price]
         self.timeDeltaList = [index for index, timeStamp in enumerate(self.timeStampList)]
         self.timeInterval = interval
         self.apiLookupFunction = function
 
         self.linearModel = linear_model.LinearRegression()
         self.times = np.reshape(self.timeDeltaList, (len(self.timeDeltaList), 1))
-        self.prices = np.reshape(self.priceList, (len(self.priceList), 1))
+        self.prices = np.reshape(dataset.Price, (len(dataset.Price), 1))
         self.linearModel.fit(self.times, self.prices)
 
     def calculateRegressionLine(self):
@@ -40,18 +39,13 @@ class Regression():
     def calculatePricePrediction(self):
 
         predictTimeStamp = 0
-        predictTimeMultiplier = 0
+        predictTimeMultiplier = 0.07
 
         if self.apiLookupFunction == 'TIME_SERIES_INTRADAY':
             predictTimeMultiplier = 1.1 # Predicts 10 minutes ahead
-            predictTimeStamp = (((self.timeInterval * predictTimeMultiplier) * len(self.timeStampList)) - 1)
-        else:
-            predictTimeMultiplier = 2 # Predicts 200 days ahead
-            predictTimeStamp = (((self.timeInterval * predictTimeMultiplier) * len(self.timeStampList)) - 1)
-
+        predictTimeStamp = int(((self.timeInterval * predictTimeMultiplier) * len(self.timeStampList)) - 1)
         pricePredictionMatrix = self.linearModel.predict(predictTimeStamp)
         pricePrediction = [column for row in pricePredictionMatrix for column in row]
-
         return pricePrediction
 
 class UserSearchData():
@@ -62,10 +56,9 @@ class UserSearchData():
         self.apiLookupFunction = function
 
         # Formats the interval query used in the API url based hitting the intraday or daily API
+        self.timeInterval = 1 #day
         if function == 'TIME_SERIES_INTRADAY':
-            self.timeInterval = interval
-        else:
-            self.timeInterval = 1
+            self.timeInterval = interval # API can return 1, 5, 15, 30, 60 min intervals
 
     def switchLookupFunction(self):
 
