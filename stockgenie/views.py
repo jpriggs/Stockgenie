@@ -1,27 +1,23 @@
 import os
 from datetime import datetime
-from models import ApiStockData
 import pandas as pd
 import json
 import requests
 import plotly
 import plotly.graph_objs as go
-import numpy as np
-import matplotlib.dates as mdates
-from scipy import stats
 
 from flask import Flask, render_template, url_for, request, redirect, flash
-from models import ApiStockData, UserSearchData, StockListData
+from models import ApiStockData, Regression, UserSearchData, StockListData
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__)
 
+def createStockPriceChart(dataset, name, regression):
 
-def createStockPriceChart(dataset, name):
-
-    # Load the dataset
-    data = [go.Scatter(x=dataset.index, y=dataset.Price)]
+    # Loads the price data, time series data, and regression line data into the chart
+    priceHistoryLine = go.Scatter(x=dataset.index, y=dataset.Price, name='Price History', line=dict(color='#3030DB', width=3))
+    regressionLine = go.Scatter(x=dataset.index, y=regression, name='Regression', line=dict(color='#CC2446', width=3))
     config = {'displayModeBar': False}
     layout = go.Layout(
         title=name + ' Price History',
@@ -30,13 +26,14 @@ def createStockPriceChart(dataset, name):
             size=20,
             color='#000'
         ),
-        showlegend=False,
+        showlegend=True,
+        legend=dict(orientation='v', xanchor='auto', yanchor='bottom'),
         margin=go.Margin(
             l=85,
             r=35,
             b=50,
             t=50,
-            pad=2
+            pad=0
         ),
         xaxis=dict(
             title='Time',
@@ -69,7 +66,8 @@ def createStockPriceChart(dataset, name):
             tickangle=45
         )
     )
-    fig = go.Figure(data=data, layout=layout)
+    data = [priceHistoryLine, regressionLine]
+    fig = dict(data=data, layout=layout)
 
     return plotly.offline.plot(fig, config=config, output_type='div', show_link=False, link_text=False)
 
@@ -79,7 +77,6 @@ def stockListSearch(searchString):
     if not searchString:
         print ("searchString error")
         return None
-    searchDataContainer = UserSearchData(searchString)
 
     # Loads and sanitizes the stock dictionary to match any user input
     rawStockSymbol = ''
@@ -87,8 +84,9 @@ def stockListSearch(searchString):
     for thisStockSymbol, thisStockData in rawStocksDict.items():
         #thisStockData contains [stock name, exchange name]
         stockValues = StockListData(thisStockSymbol, thisStockData[0], thisStockData[1])
+
         # Checks if the user search string matches stock symbol or company name in the dictionary
-        if stockValues.matchesNameOrSymbol(searchDataContainer.sanitizedSearchString):
+        if stockValues.matchesNameOrSymbol(searchString):
             return stockValues
 
     print ('Error:\tNo returned values to function')
@@ -103,25 +101,24 @@ def getBasicStockInfo(symbol, name, exchange):
     try:
         response = requests.get(url)
         if response.status_code in (200,):
-            #TODO: Clean up this code to remove the unnecessary .format on ones that don't need it.
             data = json.loads(response.content[6:-2].decode('unicode_escape'))
             stockData = dict({
-                            'Name': '{}'.format(data['name']),
-                            'Symbol': '{}'.format(data['t']),
-                            'Exchange': '{}'.format(data['e']),
-                            'Price': '{}'.format(data['l']),
-                            'Open': '{}'.format(data['op']),
-                            '$ Chg': '{}'.format(data['c']),
-                            '% Chg': '{}%'.format(data['cp']),
-                            'High': '{}'.format(data['hi']),
-                            'Low': '{}'.format(data['lo']),
-                            'MktCap': '{}'.format(data['mc']),
-                            'P/E Ratio': '{}'.format(data['pe']),
-                            'Beta': '{}'.format(data['beta']),
-                            'EPS': '{}'.format(data['eps']),
-                            '52w High': '{}'.format(data['hi52']),
-                            '52w Low': '{}'.format(data['lo52']),
-                            'Shares': '{}'.format(data['shares']),
+                            'Name': data['name'],
+                            'Symbol': data['t'],
+                            'Exchange': data['e'],
+                            'Price': data['l'],
+                            'Open': data['op'],
+                            '$ Chg': data['c'],
+                            '% Chg': data['cp'],
+                            'High': data['hi'],
+                            'Low': data['lo'],
+                            'MktCap': data['mc'],
+                            'P/E Ratio': data['pe'],
+                            'Beta': data['beta'],
+                            'EPS': data['eps'],
+                            '52w High': data['hi52'],
+                            '52w Low': data['lo52'],
+                            'Shares': data['shares'],
                             'Updated': '{}'.format(datetime.now().strftime(dateTimeFormat))
             })
     except:
@@ -152,82 +149,100 @@ def getBasicStockInfo(symbol, name, exchange):
     return stockData
 
 # Gets the external stock price API
-def getApiStockValues(symbol):
+def getApiStockValues(symbol, searchData):
 
     apiPriceKey = '4. close'
     apikey = 'Z0QNUSV1HF3JBMRR'
-    function = 'TIME_SERIES_INTRADAY'
-    minutes = 1
-    interval = str(minutes) + 'min'
     outputsize = 'compact'
     datatype = 'json'
-    url = 'https://www.alphavantage.co/query?function={}&symbol={}&interval={}&outputsize={}&datatype={}&apikey={}'.format(function, symbol, interval, outputsize, datatype, apikey)
+    urlBase = 'https://www.alphavantage.co/query?function={}&symbol={}&outputsize={}&datatype={}&apikey={}{}'
 
+    # Get the response data from either of the two relevant APIs
+    response = None
+    jsonApiObject = None
     try:
-        response = requests.get(url)
+        intervalStr = '&interval=' + (str(searchData.timeInterval) + 'min') if searchData.apiLookupFunction == 'TIME_SERIES_INTRADAY' else ''
+        response = requests.get(urlBase.format(searchData.apiLookupFunction, symbol, outputsize, datatype, apikey, intervalStr))
         if response.status_code in (200,):
-            pricingData = json.loads(response.content.decode('unicode_escape'))
-            timeStampData = pricingData[list(pricingData)[1]]
-
-            # Adds timestamp values as indexes and all close price values to a list
-            stockHistoricalPrices = []
-            for timeStampValue in timeStampData:
-                priceValue = timeStampData[timeStampValue][apiPriceKey]
-                stockHistoricalPrices.append(ApiStockData(timeStampValue, priceValue))
-
-            # Adds objects from a class constructor to a list
-            stockHistoricalPrices = [ApiStockData(timeStampKey, timeStampData[timeStampKey][apiPriceKey]) for timeStampKey in timeStampData]
-
-            stockTimeSeriesDataset = []
-            labels = ['Time', 'Price']
-            # Iterates through the sorted data and displays the timestamp and closing prices
-            for obj in sorted(stockHistoricalPrices, key=lambda sortObjectIteration: sortObjectIteration.timeStampValue, reverse=False):
-                stockTimeSeriesDataset.append([obj.timeStampValue, obj.priceValue])
-
-            # Creates a dataframe using Pandas
-            df = pd.DataFrame.from_records(stockTimeSeriesDataset, columns=labels, index='Time')
-
-            return df
+            jsonApiObject = json.loads(response.content.decode('unicode_escape'))
+        if 'Error Message' in jsonApiObject:
+            jsonApiObject = None
+            raise ValueError
+    except ValueError:
+        searchData.switchLookupFunction()
+        intervalStr = '&interval=' + (str(searchData.timeInterval) + 'min') if searchData.apiLookupFunction == 'TIME_SERIES_INTRADAY' else ''
+        response = requests.get(urlBase.format(searchData.apiLookupFunction, symbol, outputsize, datatype, apikey, intervalStr))
+        if response.status_code in (200,):
+            jsonApiObject = json.loads(response.content.decode('unicode_escape'))
+        if 'Error Message' in jsonApiObject:
+            return None
     except:
         return None
 
+    # Ensures that API data has been returned
+    if jsonApiObject is None:
+        return None
+
+    # Adds and sorts the API data from oldest to newest data points
+    timeStampData = jsonApiObject[list(jsonApiObject)[1]]
+    stockHistoricalPrices = []
+    for timeStampValue in timeStampData:
+        priceValue = timeStampData[timeStampValue][apiPriceKey]
+        # Instantiates the ApiStockData class passing in timestamp and price values based on an intraday or daily time series
+        apiStockDataObject = ApiStockData(timeStampValue, priceValue, searchData.apiLookupFunction)
+        stockHistoricalPrices.insert(0, [apiStockDataObject.timeStampValue, apiStockDataObject.priceValue])
+
+    # Creates a dataframe from the timestamps and prices using Pandas
+    labels = ['Timestamp', 'Price']
+    df = pd.DataFrame.from_records(stockHistoricalPrices, columns=labels, index='Timestamp')
+
+    return df
 
 # Views
 @app.route('/')
 @app.route('/index')
 def index():
     userSearchedStock = request.args.get('search-item')
+    userInterval = 1 # in minutes - temp value
+    userFunction = 'TIME_SERIES_INTRADAY' # TIME_SERIES_INTRADAY or TIME_SERIES_DAILY - temp value
     if not userSearchedStock:
         return render_template('base.html')
 
-    stockMatchResult = stockListSearch(userSearchedStock)
-    # Validates that a user inputted matched stock is returned
+    # Instantiates the user search inputted values class
+    userInputSearchValues = UserSearchData(userSearchedStock, userInterval, userFunction)
+
+    # Gets the user matched stock result
+    stockMatchResult = stockListSearch(userInputSearchValues.sanitizedSearchString)
     if stockMatchResult is None:
         return render_template('base.html')
     stockMatchDataContainer = StockListData(stockMatchResult.stockSymbol, stockMatchResult.companyName, stockMatchResult.stockExchange)
 
     # Gets API values from Alphavantage (pricing) and Google Finance (Stock Info)
-    pricingData = getApiStockValues(stockMatchDataContainer.replaceCaretSymbol(stockMatchResult.stockSymbol))
-    if pricingData is None:
+    #timeSeriesPriceData = getApiStockValues(userSearchedStock, stockMatchDataContainer.getApiSafeSymbol(stockMatchResult.stockSymbol), userInputSearchValues.timeInterval, userInputSearchValues.apiLookupFunction)
+    timeSeriesPriceData = getApiStockValues(stockMatchDataContainer.getApiSafeSymbol(stockMatchResult.stockSymbol), userInputSearchValues)
+    if timeSeriesPriceData is None:
         return render_template('base.html')
-    stockData =  getBasicStockInfo(stockMatchDataContainer.replaceCaretSymbol(stockMatchResult.stockSymbol), stockMatchDataContainer.companyName, stockMatchDataContainer.stockExchange)
+
+    stockData =  getBasicStockInfo(stockMatchDataContainer.getApiSafeSymbol(stockMatchResult.stockSymbol), stockMatchDataContainer.companyName, stockMatchDataContainer.stockExchange)
     if stockData is None:
         return render_template('base.html')
 
-    # Adjusts the chart title length to fit the chart size
-    # TODO: Offload this code to the StockListData class
-    baseTitleLength = 32
-    for character in stockMatchDataContainer.companyName[baseTitleLength:]:
-        if stockMatchDataContainer.companyName[baseTitleLength - 1:baseTitleLength] is not ' ':
-            baseTitleLength += 1
-        else:
-            baseTitleLength -= 1
-            break
+    # Generate regression data
+    regressionData = Regression(timeSeriesPriceData, userInputSearchValues.timeInterval, userInputSearchValues.apiLookupFunction)
+    regressionLine = regressionData.calculateRegressionLine()
+    predictedPrice = regressionData.calculatePricePrediction()
+
+    # Prototype prediction recommendation based on current price and predicted price
+    recommendation = ''
+    if predictedPrice > timeSeriesPriceData.Price[99]:
+        recommendation = 'BUY'
+    else:
+        recommendation = "DON'T BUY"
 
     # Creates a chart based on the price data returned from the API
-    chart = createStockPriceChart(pricingData, stockMatchDataContainer.companyName[:baseTitleLength])
+    chart = createStockPriceChart(timeSeriesPriceData, stockMatchDataContainer.companyName, regressionLine)
 
-    return render_template('base.html', stockData=stockData, chart=chart)
+    return render_template('base.html', stockData=stockData, chart=chart, predictedPrice=float(predictedPrice[0]), recommendation=recommendation)
 
 # Error handling
 @app.errorhandler(404)
