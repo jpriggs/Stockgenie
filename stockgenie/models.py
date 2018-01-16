@@ -19,12 +19,10 @@ class Regression():
 
     def __init__(self, dataset, interval, function):
         self.timeStampList = dataset.index
-        self.priceList = dataset.Price
+        self.priceList = [price for price in dataset.Price]
+        self.timeDeltaList = [index for index, timeStamp in enumerate(self.timeStampList)]
         self.timeInterval = interval
         self.apiLookupFunction = function
-
-        self.timeDeltaList = [index for index, timeStamp in enumerate(self.timeStampList)]
-        self.priceList = [price for price in self.priceList]
 
         self.linearModel = linear_model.LinearRegression()
         self.times = np.reshape(self.timeDeltaList, (len(self.timeDeltaList), 1))
