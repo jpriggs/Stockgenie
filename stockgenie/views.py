@@ -158,8 +158,8 @@ def getApiStockValues(searchString, symbol, interval, function):
     url =  'https://www.alphavantage.co/query?function={}&symbol={}&outputsize={}&datatype={}&apikey={}{}'.format(function, symbol, outputsize, datatype, apikey, '&interval=' + (str(interval) + 'min') if function == 'TIME_SERIES_INTRADAY' else '')
 
     # Checks that the API returns a response and JSON values or returns None
+    response = requests.get(url)
     try:
-        response = requests.get(url)
         if response.status_code in (200,):
             jsonApiObject = json.loads(response.content.decode('unicode_escape'))
     except:
@@ -168,7 +168,6 @@ def getApiStockValues(searchString, symbol, interval, function):
         function = userInputSearchValues.apiLookupFunction
         interval = userInputSearchValues.timeInterval
         url =  'https://www.alphavantage.co/query?function={}&symbol={}&outputsize={}&datatype={}&apikey={}{}'.format(function, symbol, outputsize, datatype, apikey, '&interval=' + (str(interval) + 'min') if function == 'TIME_SERIES_INTRADAY' else '')
-        response = requests.get(url)
         if response.status_code in (200,):
             jsonApiObject = json.loads(response.content.decode('unicode_escape'))
 
