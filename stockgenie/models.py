@@ -33,7 +33,6 @@ class Regression():
         # Create linear model data
         linearFitPricesMatrix = self.linearModel.predict(self.times)
         regressionLineData = [column for row in linearFitPricesMatrix for column in row]
-
         return regressionLineData
 
     def calculatePricePrediction(self):

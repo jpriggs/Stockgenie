@@ -177,15 +177,13 @@ def getApiStockValues(searchString, symbol, interval, function):
     except:
         return None
 
+    # Adds and sorts the API data from oldest to newest data points
     stockHistoricalPrices = []
     for timeStampValue in timeStampData:
         priceValue = timeStampData[timeStampValue][apiPriceKey]
         # Instantiates the ApiStockData class passing in timestamp and price values based on an intraday or daily time series
         apiStockDataObject = ApiStockData(timeStampValue, priceValue, function)
-        stockHistoricalPrices.append([apiStockDataObject.timeStampValue, apiStockDataObject.priceValue])
-
-    # Sorts the data by timestamp from oldest to newest
-    stockTimeSeriesDataset = sorted(stockHistoricalPrices, key=lambda sortIterator: sortIterator[0])
+        stockHistoricalPrices.insert(0, [apiStockDataObject.timeStampValue, apiStockDataObject.priceValue])
 
     # Creates a dataframe from the timestamps and prices using Pandas
     labels = ['Timestamp', 'Price']
