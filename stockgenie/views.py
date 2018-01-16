@@ -149,39 +149,47 @@ def getBasicStockInfo(symbol, name, exchange):
     return stockData
 
 # Gets the external stock price API
-def getApiStockValues(searchString, symbol, interval, function):
+def getApiStockValues(symbol, searchData):
 
     apiPriceKey = '4. close'
     apikey = 'Z0QNUSV1HF3JBMRR'
     outputsize = 'compact'
     datatype = 'json'
-    url =  'https://www.alphavantage.co/query?function={}&symbol={}&outputsize={}&datatype={}&apikey={}{}'.format(function, symbol, outputsize, datatype, apikey, '&interval=' + (str(interval) + 'min') if function == 'TIME_SERIES_INTRADAY' else '')
+    urlBase = 'https://www.alphavantage.co/query?function={}&symbol={}&outputsize={}&datatype={}&apikey={}{}'
 
-    # Checks that the API returns a response and JSON values or returns None
-    response = requests.get(url)
+    # Get the response data from either of the two relevant APIs
+    response = None
+    jsonApiObject = None
     try:
+        intervalStr = '&interval=' + (str(searchData.timeInterval) + 'min') if searchData.apiLookupFunction == 'TIME_SERIES_INTRADAY' else ''
+        url = urlBase.format(searchData.apiLookupFunction, symbol, outputsize, datatype, apikey, intervalStr)
+        response = requests.get(url)
         if response.status_code in (200,):
             jsonApiObject = json.loads(response.content.decode('unicode_escape'))
-    except:
-        userInputSearchValues = UserSearchData(searchString, interval, function)
-        userInputSearchValues.switchLookupFunction()
-        function = userInputSearchValues.apiLookupFunction
-        interval = userInputSearchValues.timeInterval
-        url =  'https://www.alphavantage.co/query?function={}&symbol={}&outputsize={}&datatype={}&apikey={}{}'.format(function, symbol, outputsize, datatype, apikey, '&interval=' + (str(interval) + 'min') if function == 'TIME_SERIES_INTRADAY' else '')
+        if 'Error Message' in jsonApiObject:
+            jsonApiObject = None
+            raise ValueError
+    except ValueError:
+        searchData.switchLookupFunction()
+        intervalStr = '&interval=' + (str(searchData.timeInterval) + 'min') if searchData.apiLookupFunction == 'TIME_SERIES_INTRADAY' else ''
+        url = urlBase.format(searchData.apiLookupFunction, symbol, outputsize, datatype, apikey, intervalStr)
+        response = requests.get(url)
         if response.status_code in (200,):
             jsonApiObject = json.loads(response.content.decode('unicode_escape'))
+        if 'Error Message' in jsonApiObject:
+            return None
 
-    timeStampData = jsonApiObject[list(jsonApiObject)[1]]
-    # Ensures that API data has been retrieved
-    if timeStampData is None:
+    # Ensures that API data has been returned
+    if jsonApiObject is None:
         return None
 
     # Adds and sorts the API data from oldest to newest data points
+    timeStampData = jsonApiObject[list(jsonApiObject)[1]]
     stockHistoricalPrices = []
     for timeStampValue in timeStampData:
         priceValue = timeStampData[timeStampValue][apiPriceKey]
         # Instantiates the ApiStockData class passing in timestamp and price values based on an intraday or daily time series
-        apiStockDataObject = ApiStockData(timeStampValue, priceValue, function)
+        apiStockDataObject = ApiStockData(timeStampValue, priceValue, searchData.apiLookupFunction)
         stockHistoricalPrices.insert(0, [apiStockDataObject.timeStampValue, apiStockDataObject.priceValue])
 
     # Creates a dataframe from the timestamps and prices using Pandas
@@ -196,7 +204,7 @@ def getApiStockValues(searchString, symbol, interval, function):
 def index():
     userSearchedStock = request.args.get('search-item')
     userInterval = 1 # in minutes - temp value
-    userFunction = 'TIME_SERIES_INTRADAY' # TIME_SERIES_INTRADAY or TIME_SERIES_DAILY - temp value
+    userFunction = 'TIME_SERIES_DAILY' # TIME_SERIES_INTRADAY or TIME_SERIES_DAILY - temp value
     if not userSearchedStock:
         return render_template('base.html')
 
@@ -210,7 +218,8 @@ def index():
     stockMatchDataContainer = StockListData(stockMatchResult.stockSymbol, stockMatchResult.companyName, stockMatchResult.stockExchange)
 
     # Gets API values from Alphavantage (pricing) and Google Finance (Stock Info)
-    timeSeriesPriceData = getApiStockValues(userSearchedStock, stockMatchDataContainer.getApiSafeSymbol(stockMatchResult.stockSymbol), userInputSearchValues.timeInterval, userInputSearchValues.apiLookupFunction)
+    #timeSeriesPriceData = getApiStockValues(userSearchedStock, stockMatchDataContainer.getApiSafeSymbol(stockMatchResult.stockSymbol), userInputSearchValues.timeInterval, userInputSearchValues.apiLookupFunction)
+    timeSeriesPriceData = getApiStockValues(stockMatchDataContainer.getApiSafeSymbol(stockMatchResult.stockSymbol), userInputSearchValues)
     if timeSeriesPriceData is None:
         return render_template('base.html')
 
