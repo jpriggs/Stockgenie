@@ -1,8 +1,11 @@
 import json
 import requests
-from datetime import datetime
+from datetime import datetime, time
 import numpy as np
 from sklearn import linear_model
+import pandas as pd
+from pandas.tseries.offsets import CustomBusinessHour, CustomBusinessDay, DateOffset, Minute
+from pandas.tseries.holiday import USFederalHolidayCalendar
 
 class ApiStockData():
 
@@ -36,6 +39,22 @@ class Regression():
         return regressionLineData
 
     def calculatePricePrediction(self):
+        mktClose = time(16,0) # 16:00 Eastern Standard Time (U.S.A.)
+        nextBusinessHour = CustomBusinessHour(start='8:30', end='16:00', calendar=USFederalHolidayCalendar())
+        nextBusinessDay = CustomBusinessDay(calendar=USFederalHolidayCalendar())
+        validFutureTimeStamp = []
+        currentTimeStamp = self.timeStampList[99:]
+
+        # Creates a list of future time stamps ignoring closing hours, weekends, and holidays
+        for timestamp in range(0,120):
+            if self.apiLookupFunction == 'TIME_SERIES_INTRADAY':
+                currentTimeStamp += Minute(self.timeInterval)
+                if currentTimeStamp.time > mktClose:
+                    currentTimeStamp += nextBusinessHour
+                validFutureTimeStamp.append(currentTimeStamp)
+            else:
+                currentTimeStamp += nextBusinessDay
+                validFutureTimeStamp.append(currentTimeStamp)
 
         predictTimeStamp = 0
         predictTimeMultiplier = 0.07
