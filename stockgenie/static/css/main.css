@@ -79,24 +79,49 @@ h1 {
     text-align: right;
     border-right: 1px solid #6f6f6f;
 }
-.stock-predict-box table td {
-    font-size: 16px;
-    font-weight: bold;
-    padding-left: 7px;
-    padding-right: 10px;
-    padding-bottom: 5px;
-    vertical-align: top;
-    text-align: left;
-}
 
 .stock-info-box table td:last-child {
     font-size: 16px;
     padding-left: 10px;
 
 }
-
 .stock-info-box table.api-data tr {
     border-bottom: 1px dashed red;
+}
+.stock-predict-box table.predict-data td:first-child {
+    font-size: 16px;
+    padding-left: 5px;
+    padding-right: 10px;
+    padding-bottom: 5px;
+    vertical-align: top;
+    text-align: right;
+    border-right: 1px solid #6f6f6f;
+}
+.stock-predict-box table.predict-data td:last-child {
+    font-size: 16px;
+    font-weight: bold;
+    padding-left: 10px;
+    padding-right: 5px;
+}
+.stock-predict-box table.recommendation {
+    margin-top: 30px;
+}
+.stock-predict-box td.text-label {
+    font-size: 24px;
+    color: black;
+    font-weight: bold;
+    width: 258px;
+    margin-top: 30px;
+    padding-bottom: 5px;
+    vertical-align: top;
+    text-align: center;
+}
+.stock-predict-box td.advice {
+    font-size: 64px;
+    font-weight: bold;
+    width: 258px;
+    text-align: center;
+    margin-top: 30px;
 }
 /* Custom media queries */
 @media (min-width: 768px)

@@ -7,7 +7,7 @@ import plotly
 import plotly.graph_objs as go
 
 from flask import Flask, render_template, url_for, request, redirect, flash
-from models import ApiStockData, Regression, UserSearchData, StockListData
+from models import ApiStockData, Regression, UserSearchData, StockListData, ColorizeText
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -27,7 +27,7 @@ def createStockPriceChart(dataset, name, regression):
             color='#000'
         ),
         showlegend=True,
-        legend=dict(orientation='v', xanchor='auto', yanchor='bottom'),
+        legend=dict(orientation='v', xanchor='auto', yanchor='top'),
         margin=go.Margin(
             l=85,
             r=35,
@@ -221,7 +221,7 @@ def index():
     timeSeriesPriceData = getApiStockValues(stockMatchDataContainer.getApiSafeSymbol(stockMatchResult.stockSymbol), userInputSearchValues)
     if timeSeriesPriceData is None:
         return render_template('base.html')
-
+    print(timeSeriesPriceData['Price'][99:])
     stockData =  getBasicStockInfo(stockMatchDataContainer.getApiSafeSymbol(stockMatchResult.stockSymbol), stockMatchDataContainer.companyName, stockMatchDataContainer.stockExchange)
     if stockData is None:
         return render_template('base.html')
@@ -229,19 +229,18 @@ def index():
     # Generate regression data
     regressionData = Regression(timeSeriesPriceData, userInputSearchValues.timeInterval, userInputSearchValues.apiLookupFunction)
     regressionLine = regressionData.calculateRegressionLine()
-    predictedPrice = regressionData.calculatePricePrediction()
+    predictData = regressionData.calculatePricePrediction()
 
     # Prototype prediction recommendation based on current price and predicted price
-    recommendation = ''
-    if predictedPrice > timeSeriesPriceData.Price[99]:
-        recommendation = 'BUY'
-    else:
-        recommendation = "DON'T BUY"
+    latestPredictData = list(predictData.items())[-1] # Get the last element in the prediction dictionary
+    recommendation = {'Recommendation': 'BUY' if timeSeriesPriceData.Price[99] < latestPredictData[1] else 'SELL'}
+    colorizeObjectData = ColorizeText(recommendation['Recommendation'])
+    recommendColor = colorizeObjectData.getColor()
 
     # Creates a chart based on the price data returned from the API
     chart = createStockPriceChart(timeSeriesPriceData, stockMatchDataContainer.companyName, regressionLine)
 
-    return render_template('base.html', stockData=stockData, chart=chart, predictedPrice=float(predictedPrice[0]), recommendation=recommendation)
+    return render_template('base.html', stockData=stockData, chart=chart, predictData=predictData, recommendation=recommendation, recommendColor=recommendColor)
 
 # Error handling
 @app.errorhandler(404)

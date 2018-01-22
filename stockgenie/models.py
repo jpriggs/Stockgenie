@@ -1,10 +1,9 @@
 import json
 import requests
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 import numpy as np
 from sklearn import linear_model
-import pandas as pd
-from pandas.tseries.offsets import CustomBusinessHour, CustomBusinessDay, DateOffset, Minute
+from pandas.tseries.offsets import CustomBusinessHour, CustomBusinessDay, Minute
 from pandas.tseries.holiday import USFederalHolidayCalendar
 
 class ApiStockData():
@@ -39,32 +38,78 @@ class Regression():
         return regressionLineData
 
     def calculatePricePrediction(self):
-        mktClose = time(16,0) # 16:00 Eastern Standard Time (U.S.A.)
+        self.timeInterval = 1 #temp value!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        mktCloseBase = datetime(year=2018, month=1, day=1, hour=16, minute=0, second=0)
+        mktCloseOffset = timedelta(minutes=(self.timeInterval - 1))
+        adjustedMktClose = (mktCloseBase - mktCloseOffset).time()
+        mktClose = mktCloseBase.time() # 16:00 Eastern Standard Time (U.S.A.)
+        predictBeginIndex = 100
         nextBusinessHour = CustomBusinessHour(start='8:30', end='16:00', calendar=USFederalHolidayCalendar())
         nextBusinessDay = CustomBusinessDay(calendar=USFederalHolidayCalendar())
-        validFutureTimeStamp = []
+        validFutureTimePriceSet = []
         currentTimeStamp = self.timeStampList[99:]
 
-        # Creates a list of future time stamps ignoring closing hours, weekends, and holidays
-        for timestamp in range(0,120):
+        # Creates a list of future time stamps and prices ignoring closing hours, weekends, and holidays
+        for timeStampIterator in range(0,121):
             if self.apiLookupFunction == 'TIME_SERIES_INTRADAY':
-                currentTimeStamp += Minute(self.timeInterval)
+                currentTimeStamp += Minute(self.timeInterval) #self.timeInterval
                 if currentTimeStamp.time > mktClose:
                     currentTimeStamp += nextBusinessHour
-                validFutureTimeStamp.append(currentTimeStamp)
             else:
                 currentTimeStamp += nextBusinessDay
-                validFutureTimeStamp.append(currentTimeStamp)
+            pricePredictionMatrix = self.linearModel.predict(predictBeginIndex + timeStampIterator)
+            pricePrediction = pricePredictionMatrix[0][0] # 2D array with one value
+            validFutureTimePriceSet.append([currentTimeStamp[0].to_pydatetime(), pricePrediction])
 
-        predictTimeStamp = 0
-        predictTimeMultiplier = 0.07
-
+        # Adds pre determined values to a dictionary based on the API interval selected
+        returnValues = {}
         if self.apiLookupFunction == 'TIME_SERIES_INTRADAY':
-            predictTimeMultiplier = 1.1 # Predicts 10 minutes ahead
-        predictTimeStamp = int(((self.timeInterval * predictTimeMultiplier) * len(self.timeStampList)) - 1)
-        pricePredictionMatrix = self.linearModel.predict(predictTimeStamp)
-        pricePrediction = [column for row in pricePredictionMatrix for column in row]
-        return pricePrediction
+            for index, timeStamp in enumerate(validFutureTimePriceSet):
+                if validFutureTimePriceSet[index][0].time() < adjustedMktClose:
+                    # Adds 30 min, 1 hour, 1.5 hours, and 2 hours to dictionary if in range of look ahead, or next day if not
+                    if self.timeInterval == 1:
+                        if ((index % 30) == 0) and (index != 0):
+                            keyFormat = validFutureTimePriceSet[index][0].strftime('%a, %b %d %I:%M%p')
+                            returnValues[keyFormat] = validFutureTimePriceSet[index][1]
+                    # Adds 2 hours, 4 hours, and 6 hours to dictionary if in range of look ahead, or next day if not
+                    if self.timeInterval == 5:
+                        if ((index % 24) == 0) and (index != 0):
+                            keyFormat = validFutureTimePriceSet[index][0].strftime('%a, %b %d %I:%M%p')
+                            returnValues[keyFormat] = validFutureTimePriceSet[index][1]
+                    # Adds 3 hours and 6 hours to dictionary if in range of look ahead, or next day if not
+                    if self.timeInterval == 10:
+                        if ((index % 18) == 0) and (index != 0):
+                            keyFormat = validFutureTimePriceSet[index][0].strftime('%a, %b %d %I:%M%p')
+                            returnValues[keyFormat] = validFutureTimePriceSet[index][1]
+                else:
+                    keyFormat = validFutureTimePriceSet[index + 1][0].strftime('%a, %b %d %I:%M%p')
+                    returnValues[keyFormat] = validFutureTimePriceSet[index][1]
+                    break
+                print(index, timeStamp[0], timeStamp[1])
+            print(returnValues)
+        else:
+            for index, timeStamp in enumerate(validFutureTimePriceSet):
+                if index == 0 or index == 5 or index == 10 or index == 21:
+                    keyFormat = validFutureTimePriceSet[index][0].strftime('%a, %b %d, %Y')
+                    returnValues[keyFormat] = validFutureTimePriceSet[index][1]
+                #print(index, timeStamp[0], timeStamp[1])
+            #print(returnValues)
+
+        return returnValues
+
+class ColorizeText():
+
+    def __init__(self, text):
+        self.text = text
+
+    def getColor(self):
+        color = ''
+        if self.text == 'BUY':
+            color = 'green'
+        else:
+            color = 'red'
+
+        return color
 
 class UserSearchData():
 

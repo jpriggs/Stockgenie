@@ -51,16 +51,29 @@
             <div class='col-md-3 col-sm-12'>
                 <div class='stock-predict-box'>
                     <h4>Stock Prediction</h4>
-                    <table>
+                    <table class='predict-data'>
                         <tbody>
-                            {% if stockData %}
+                        {% if predictData %}
+                            {% for predictTime, predictPrice in predictData.items() %}
                             <tr>
-                                <td>Prediction: {{ '$%.2f' | format(predictedPrice) }}</td>
+                                <td>{{ predictTime }}</td><td>{{ '$%.2f' | format(predictPrice) }}</td>
+                            </tr>
+                            {% endfor %}
+                        {% endif %}
+                        </tbody>
+                    </table>
+                    <table class='recommendation'>
+                        <tbody>
+                        {% if recommendation %}
+                            {% for label, advice in recommendation.items() %}
+                            <tr>
+                                <td class='text-label'>{{ label }}</td>
                             </tr>
                             <tr>
-                                <td>Recommentation: {{ recommendation }}</td>
+                                <td class='advice' style='color:{{ recommendColor }}'>{{ advice }}</td>
                             </tr>
-                            {% endif %}
+                            {% endfor %}
+                        {% endif %}
                         </tbody>
                     </table>
                 </div>
