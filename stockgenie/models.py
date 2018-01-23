@@ -38,7 +38,6 @@ class Regression():
         return regressionLineData
 
     def calculatePricePrediction(self):
-        self.timeInterval = 1 #temp value!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         mktCloseBase = datetime(year=2018, month=1, day=1, hour=16, minute=0, second=0)
         mktCloseOffset = timedelta(minutes=(self.timeInterval - 1))
         adjustedMktClose = (mktCloseBase - mktCloseOffset).time()
@@ -61,41 +60,38 @@ class Regression():
             pricePrediction = pricePredictionMatrix[0][0] # 2D array with one value
             validFutureTimePriceSet.append([currentTimeStamp[0].to_pydatetime(), pricePrediction])
 
-        # Adds pre determined values to a dictionary based on the API interval selected
-        returnValues = {}
+        # Defines modulo value for intraday and index positions for daily api data
         if self.apiLookupFunction == 'TIME_SERIES_INTRADAY':
-            for index, timeStamp in enumerate(validFutureTimePriceSet):
-                if validFutureTimePriceSet[index][0].time() < adjustedMktClose:
-                    # Adds 30 min, 1 hour, 1.5 hours, and 2 hours to dictionary if in range of look ahead, or next day if not
-                    if self.timeInterval == 1:
-                        if ((index % 30) == 0) and (index != 0):
-                            keyFormat = validFutureTimePriceSet[index][0].strftime('%a, %b %d %I:%M%p')
-                            returnValues[keyFormat] = validFutureTimePriceSet[index][1]
-                    # Adds 2 hours, 4 hours, and 6 hours to dictionary if in range of look ahead, or next day if not
-                    if self.timeInterval == 5:
-                        if ((index % 24) == 0) and (index != 0):
-                            keyFormat = validFutureTimePriceSet[index][0].strftime('%a, %b %d %I:%M%p')
-                            returnValues[keyFormat] = validFutureTimePriceSet[index][1]
-                    # Adds 3 hours and 6 hours to dictionary if in range of look ahead, or next day if not
-                    if self.timeInterval == 10:
-                        if ((index % 18) == 0) and (index != 0):
-                            keyFormat = validFutureTimePriceSet[index][0].strftime('%a, %b %d %I:%M%p')
-                            returnValues[keyFormat] = validFutureTimePriceSet[index][1]
-                else:
-                    keyFormat = validFutureTimePriceSet[index + 1][0].strftime('%a, %b %d %I:%M%p')
-                    returnValues[keyFormat] = validFutureTimePriceSet[index][1]
-                    break
-                print(index, timeStamp[0], timeStamp[1])
-            print(returnValues)
+            moduloValue = 0
+            if self.timeInterval == 1:
+                moduloValue = 30 # Every 30 minutes or next day
+            elif self.timeInterval == 5:
+                moduloValue = 24 # Every 2 hours or next day
+            else:
+                moduloValue = 18 # Every 3 hours of next day
         else:
-            for index, timeStamp in enumerate(validFutureTimePriceSet):
-                if index == 0 or index == 5 or index == 10 or index == 21:
-                    keyFormat = validFutureTimePriceSet[index][0].strftime('%a, %b %d, %Y')
-                    returnValues[keyFormat] = validFutureTimePriceSet[index][1]
-                #print(index, timeStamp[0], timeStamp[1])
-            #print(returnValues)
+            presetIndexList = [0, 5, 10, 21] # Next day, next week, in two weeks, 30 days
 
-        return returnValues
+        # Adds pre determined values to a dictionary based on the API interval and function selected
+        presetTimeStampDict = {}
+        timeFormat = '%a, %b %d %I:%M%p'
+        for index, timeStamp in enumerate(validFutureTimePriceSet):
+            currentTimeStamp = validFutureTimePriceSet[index][0]
+            currentPrice = validFutureTimePriceSet[index][1]
+            if self.apiLookupFunction == 'TIME_SERIES_INTRADAY':
+                if currentTimeStamp.time() < adjustedMktClose:
+                    if ((index % moduloValue) == 0):
+                        presetTimeStampDict[currentTimeStamp.strftime(timeFormat)] = currentPrice
+                else:
+                    currentTimeStamp = validFutureTimePriceSet[index + 1][0]
+                    presetTimeStampDict[currentTimeStamp.strftime(timeFormat)] = currentPrice
+                    break
+            else:
+                for presetIndexValue in presetIndexList:
+                    if presetIndexValue == index:
+                        presetTimeStampDict[currentTimeStamp.strftime(timeFormat)] = currentPrice
+
+        return presetTimeStampDict
 
 class ColorizeText():
 

@@ -20,14 +20,14 @@ def createStockPriceChart(dataset, name, regression):
     regressionLine = go.Scatter(x=dataset.index, y=regression, name='Regression', line=dict(color='#CC2446', width=3))
     config = {'displayModeBar': False}
     layout = go.Layout(
-        title=name + ' Price History',
+        title=name,
         titlefont=dict(
             family='Helvetica, sans-serif',
             size=20,
             color='#000'
         ),
         showlegend=True,
-        legend=dict(orientation='v', xanchor='auto', yanchor='top'),
+        legend=dict(orientation='v', xanchor='auto', yanchor='bottom'),
         margin=go.Margin(
             l=85,
             r=35,
@@ -204,7 +204,7 @@ def getApiStockValues(symbol, searchData):
 def index():
     userSearchedStock = request.args.get('search-item')
     userInterval = 1 # in minutes - temp value
-    userFunction = 'TIME_SERIES_DAILY' # TIME_SERIES_INTRADAY or TIME_SERIES_DAILY - temp value
+    userFunction = 'TIME_SERIES_INTRADAY' # TIME_SERIES_INTRADAY or TIME_SERIES_DAILY - temp value
     if not userSearchedStock:
         return render_template('base.html')
 
@@ -221,7 +221,7 @@ def index():
     timeSeriesPriceData = getApiStockValues(stockMatchDataContainer.getApiSafeSymbol(stockMatchResult.stockSymbol), userInputSearchValues)
     if timeSeriesPriceData is None:
         return render_template('base.html')
-    print(timeSeriesPriceData['Price'][99:])
+
     stockData =  getBasicStockInfo(stockMatchDataContainer.getApiSafeSymbol(stockMatchResult.stockSymbol), stockMatchDataContainer.companyName, stockMatchDataContainer.stockExchange)
     if stockData is None:
         return render_template('base.html')
