@@ -7,7 +7,7 @@ import plotly
 import plotly.graph_objs as go
 
 from flask import Flask, render_template, url_for, request, redirect, flash
-from models import ApiStockData, Regression, UserSearchData, StockListData, ColorizeText
+from models import ApiStockData, Regression, UserSearchData, StockListData, ColorizedText
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -234,7 +234,7 @@ def index():
     # Prototype prediction recommendation based on current price and predicted price
     latestPredictData = list(predictData.items())[-1] # Get the last element in the prediction dictionary
     recommendation = {'Recommendation': 'BUY' if timeSeriesPriceData.Price[99] < latestPredictData[1] else 'SELL'}
-    colorizeObjectData = ColorizeText(recommendation['Recommendation'])
+    colorizeObjectData = ColorizedText(recommendation['Recommendation'])
     recommendColor = colorizeObjectData.getColor()
 
     # Creates a chart based on the price data returned from the API

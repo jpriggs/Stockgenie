@@ -54,12 +54,12 @@
                     <table class='predict-data'>
                         <tbody>
                         {% if predictData %}
-                            {% for predictTime, predictPrice in predictData.items() %}
-                            <tr>
-                                <td>{{ predictTime }}</td><td>{{ '$%.2f' | format(predictPrice) }}</td>
-                            </tr>
-                            {% endfor %}
-                        {% endif %}
+                           {% for predictTime, predictPrice in predictData.items() %}
+                           <tr>
+                               <td>{{ predictTime }}</td><td>{{ '$%.2f' | format(predictPrice) }}</td>
+                           </tr>
+                           {% endfor %}
+                       {% endif %}
                         </tbody>
                     </table>
                     <table class='recommendation'>

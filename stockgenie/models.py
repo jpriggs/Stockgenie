@@ -46,18 +46,17 @@ class Regression():
         nextBusinessHour = CustomBusinessHour(start='8:30', end='16:00', calendar=USFederalHolidayCalendar())
         nextBusinessDay = CustomBusinessDay(calendar=USFederalHolidayCalendar())
         validFutureTimePriceSet = []
-        currentTimeStamp = self.timeStampList[99:]
+        currentTimeStamp = self.timeStampList[predictBeginIndex - 1:]
 
         # Creates a list of future time stamps and prices ignoring closing hours, weekends, and holidays
         for timeStampIterator in range(0,121):
             if self.apiLookupFunction == 'TIME_SERIES_INTRADAY':
-                currentTimeStamp += Minute(self.timeInterval) #self.timeInterval
+                currentTimeStamp += Minute(self.timeInterval)
                 if currentTimeStamp.time > mktClose:
                     currentTimeStamp += nextBusinessHour
             else:
                 currentTimeStamp += nextBusinessDay
-            pricePredictionMatrix = self.linearModel.predict(predictBeginIndex + timeStampIterator)
-            pricePrediction = pricePredictionMatrix[0][0] # 2D array with one value
+            pricePrediction = self.linearModel.predict(predictBeginIndex + timeStampIterator)[0][0] # 2D array with one value
             validFutureTimePriceSet.append([currentTimeStamp[0].to_pydatetime(), pricePrediction])
 
         # Defines modulo value for intraday and index positions for daily api data
@@ -80,7 +79,7 @@ class Regression():
             currentPrice = validFutureTimePriceSet[index][1]
             if self.apiLookupFunction == 'TIME_SERIES_INTRADAY':
                 if currentTimeStamp.time() < adjustedMktClose:
-                    if ((index % moduloValue) == 0):
+                    if ((index % moduloValue) == 0 and (index != 0)):
                         presetTimeStampDict[currentTimeStamp.strftime(timeFormat)] = currentPrice
                 else:
                     currentTimeStamp = validFutureTimePriceSet[index + 1][0]
@@ -93,7 +92,7 @@ class Regression():
 
         return presetTimeStampDict
 
-class ColorizeText():
+class ColorizedText():
 
     def __init__(self, text):
         self.text = text
