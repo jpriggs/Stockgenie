@@ -3,7 +3,7 @@ import requests
 from datetime import datetime, time, timedelta
 import numpy as np
 from sklearn import linear_model
-from pandas.tseries.offsets import CustomBusinessHour, CustomBusinessDay, Minute
+from pandas.tseries.offsets import CustomBusinessHour, CustomBusinessDay
 from pandas.tseries.holiday import USFederalHolidayCalendar
 
 class ApiStockData():
@@ -25,19 +25,25 @@ class Regression():
         self.timeInterval = interval
         self.apiLookupFunction = function
 
-        self.linearModel = linear_model.LinearRegression()
         self.times = np.reshape(self.timeStampValue, (len(self.timeStampValue), 1))
         self.prices = np.reshape(dataset.Price, (len(dataset.Price), 1))
+
+        self.linearModel = linear_model.LinearRegression()
         self.linearModel.fit(self.times, self.prices)
 
     def calculateRegressionLine(self):
-
         # Create linear model data
         linearFitPricesMatrix = self.linearModel.predict(self.times)
         regressionLineData = [column for row in linearFitPricesMatrix for column in row]
         return regressionLineData
 
     def calculatePricePrediction(self):
+        # Market opens at 9:30, closes at 16:00
+        # Closed on weekends and national holidays
+        # Code has to calculate and return from 1 up to 4 evenly spaced values (data points) to give a buy/sell Recommendation
+        # The returned data points are based on the regression line's data for future prices
+        # Because we will avoid non-trading hours, checks must be conducted for EOD and non trading days
+
         mktCloseBase = datetime(year=2018, month=1, day=1, hour=16, minute=0, second=0)
         mktCloseOffset = timedelta(minutes=(self.timeInterval - 1))
         adjustedMktClose = (mktCloseBase - mktCloseOffset).time()
@@ -51,7 +57,7 @@ class Regression():
         # Creates a list of future time stamps and prices ignoring closing hours, weekends, and holidays
         for timeStampIterator in range(0,121):
             if self.apiLookupFunction == 'TIME_SERIES_INTRADAY':
-                currentTimeStamp += Minute(self.timeInterval)
+                currentTimeStamp += pandas.tseries.offsets.Minute(self.timeInterval)
                 if currentTimeStamp.time > mktClose:
                     currentTimeStamp += nextBusinessHour
             else:

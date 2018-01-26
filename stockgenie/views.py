@@ -166,6 +166,7 @@ def getApiStockValues(symbol, searchData):
         if response.status_code in (200,):
             jsonApiObject = json.loads(response.content.decode('unicode_escape'))
         if 'Error Message' in jsonApiObject:
+            print(jsonApiObject['Error Message'])
             jsonApiObject = None
             raise ValueError
     except ValueError:
@@ -203,8 +204,8 @@ def getApiStockValues(symbol, searchData):
 @app.route('/index')
 def index():
     userSearchedStock = request.args.get('search-item')
-    userInterval = 1 # in minutes - temp value
-    userFunction = 'TIME_SERIES_INTRADAY' # TIME_SERIES_INTRADAY or TIME_SERIES_DAILY - temp value
+    userInterval = int(request.args.get('user-interval') or 10) # in minutes - temp value
+    userFunction = request.args.get('user-function') or 'TIME_SERIES_INTRADAY' # TIME_SERIES_INTRADAY or TIME_SERIES_DAILY - temp value
     if not userSearchedStock:
         return render_template('base.html')
 
