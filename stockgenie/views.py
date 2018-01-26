@@ -7,7 +7,7 @@ import plotly
 import plotly.graph_objs as go
 
 from flask import Flask, render_template, url_for, request, redirect, flash
-from models import ApiStockData, Regression, UserSearchData, StockListData
+from models import ApiStockData, Regression, UserSearchData, StockListData, ColorizedText
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -20,7 +20,7 @@ def createStockPriceChart(dataset, name, regression):
     regressionLine = go.Scatter(x=dataset.index, y=regression, name='Regression', line=dict(color='#CC2446', width=3))
     config = {'displayModeBar': False}
     layout = go.Layout(
-        title=name + ' Price History',
+        title=name,
         titlefont=dict(
             family='Helvetica, sans-serif',
             size=20,
@@ -166,6 +166,7 @@ def getApiStockValues(symbol, searchData):
         if response.status_code in (200,):
             jsonApiObject = json.loads(response.content.decode('unicode_escape'))
         if 'Error Message' in jsonApiObject:
+            print(jsonApiObject['Error Message'])
             jsonApiObject = None
             raise ValueError
     except ValueError:
@@ -203,8 +204,8 @@ def getApiStockValues(symbol, searchData):
 @app.route('/index')
 def index():
     userSearchedStock = request.args.get('search-item')
-    userInterval = 1 # in minutes - temp value
-    userFunction = 'TIME_SERIES_INTRADAY' # TIME_SERIES_INTRADAY or TIME_SERIES_DAILY - temp value
+    userInterval = int(request.args.get('user-interval') or 1) # in minutes - temp value
+    userFunction = request.args.get('user-function') or 'TIME_SERIES_INTRADAY' # TIME_SERIES_INTRADAY or TIME_SERIES_DAILY - temp value
     if not userSearchedStock:
         return render_template('base.html')
 
@@ -218,7 +219,6 @@ def index():
     stockMatchDataContainer = StockListData(stockMatchResult.stockSymbol, stockMatchResult.companyName, stockMatchResult.stockExchange)
 
     # Gets API values from Alphavantage (pricing) and Google Finance (Stock Info)
-    #timeSeriesPriceData = getApiStockValues(userSearchedStock, stockMatchDataContainer.getApiSafeSymbol(stockMatchResult.stockSymbol), userInputSearchValues.timeInterval, userInputSearchValues.apiLookupFunction)
     timeSeriesPriceData = getApiStockValues(stockMatchDataContainer.getApiSafeSymbol(stockMatchResult.stockSymbol), userInputSearchValues)
     if timeSeriesPriceData is None:
         return render_template('base.html')
@@ -230,19 +230,18 @@ def index():
     # Generate regression data
     regressionData = Regression(timeSeriesPriceData, userInputSearchValues.timeInterval, userInputSearchValues.apiLookupFunction)
     regressionLine = regressionData.calculateRegressionLine()
-    predictedPrice = regressionData.calculatePricePrediction()
+    predictData = regressionData.calculatePricePrediction()
 
     # Prototype prediction recommendation based on current price and predicted price
-    recommendation = ''
-    if predictedPrice > timeSeriesPriceData.Price[99]:
-        recommendation = 'BUY'
-    else:
-        recommendation = "DON'T BUY"
+    latestPredictData = list(predictData.items())[-1] # Get the last element in the prediction dictionary
+    recommendation = {}
+    recommendation['Text'] = 'BUY' if timeSeriesPriceData.Price[99] < latestPredictData[1] else 'SELL'
+    recommendation['Color'] = ColorizedText(recommendation['Text']).getColor()
 
     # Creates a chart based on the price data returned from the API
     chart = createStockPriceChart(timeSeriesPriceData, stockMatchDataContainer.companyName, regressionLine)
 
-    return render_template('base.html', stockData=stockData, chart=chart, predictedPrice=float(predictedPrice[0]), recommendation=recommendation)
+    return render_template('base.html', stockData=stockData, chart=chart, predictData=predictData, recommendation=recommendation)
 
 # Error handling
 @app.errorhandler(404)
