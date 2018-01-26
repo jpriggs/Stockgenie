@@ -4,6 +4,7 @@ from datetime import datetime, time, timedelta
 import numpy as np
 from sklearn import linear_model
 from pandas.tseries.offsets import CustomBusinessHour, CustomBusinessDay
+from pandas.tseries.offsets import Minute as PdMinute
 from pandas.tseries.holiday import USFederalHolidayCalendar
 
 class ApiStockData():
@@ -57,7 +58,7 @@ class Regression():
         # Creates a list of future time stamps and prices ignoring closing hours, weekends, and holidays
         for timeStampIterator in range(0,121):
             if self.apiLookupFunction == 'TIME_SERIES_INTRADAY':
-                currentTimeStamp += pandas.tseries.offsets.Minute(self.timeInterval)
+                currentTimeStamp += PdMinute(self.timeInterval)
                 if currentTimeStamp.time > mktClose:
                     currentTimeStamp += nextBusinessHour
             else:

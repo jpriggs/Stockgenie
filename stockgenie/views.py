@@ -204,7 +204,7 @@ def getApiStockValues(symbol, searchData):
 @app.route('/index')
 def index():
     userSearchedStock = request.args.get('search-item')
-    userInterval = int(request.args.get('user-interval') or 10) # in minutes - temp value
+    userInterval = int(request.args.get('user-interval') or 1) # in minutes - temp value
     userFunction = request.args.get('user-function') or 'TIME_SERIES_INTRADAY' # TIME_SERIES_INTRADAY or TIME_SERIES_DAILY - temp value
     if not userSearchedStock:
         return render_template('base.html')
@@ -234,14 +234,14 @@ def index():
 
     # Prototype prediction recommendation based on current price and predicted price
     latestPredictData = list(predictData.items())[-1] # Get the last element in the prediction dictionary
-    recommendation = {'Recommendation': 'BUY' if timeSeriesPriceData.Price[99] < latestPredictData[1] else 'SELL'}
-    colorizeObjectData = ColorizedText(recommendation['Recommendation'])
-    recommendColor = colorizeObjectData.getColor()
+    recommendation = {}
+    recommendation['Text'] = 'BUY' if timeSeriesPriceData.Price[99] < latestPredictData[1] else 'SELL'
+    recommendation['Color'] = ColorizedText(recommendation['Text']).getColor()
 
     # Creates a chart based on the price data returned from the API
     chart = createStockPriceChart(timeSeriesPriceData, stockMatchDataContainer.companyName, regressionLine)
 
-    return render_template('base.html', stockData=stockData, chart=chart, predictData=predictData, recommendation=recommendation, recommendColor=recommendColor)
+    return render_template('base.html', stockData=stockData, chart=chart, predictData=predictData, recommendation=recommendation)
 
 # Error handling
 @app.errorhandler(404)

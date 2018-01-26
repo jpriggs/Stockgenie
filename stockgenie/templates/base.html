@@ -10,7 +10,7 @@
     <script src="{{ url_for('static', filename='js/vendor/modernizr-2.8.3-respond-1.4.2.min.js') }}"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
 
-    <title>{% block title %}{% endblock %}</title>
+    <title>{% block title %}{% if stockData %}{{ stockData.Symbol }} - {{ stockData.Name }}{% endif %}{% endblock %}</title>
 </head>
 <body>
     <div class='container'>
@@ -65,14 +65,12 @@
                     <table class='recommendation'>
                         <tbody>
                         {% if recommendation %}
-                            {% for label, advice in recommendation.items() %}
                             <tr>
-                                <td class='text-label'>{{ label }}</td>
+                                <td class='text-label'>Recommendation</td>
                             </tr>
                             <tr>
-                                <td class='advice' style='color:{{ recommendColor }}'>{{ advice }}</td>
+                                <td class='advice' style='color:{{ recommendation['Color'] }}'>{{ recommendation['Text'] }}</td>
                             </tr>
-                            {% endfor %}
                         {% endif %}
                         </tbody>
                     </table>
