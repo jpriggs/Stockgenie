@@ -199,6 +199,25 @@ def getApiStockValues(symbol, searchData):
 
     return df
 
+@app.route('/api/stockSearch')
+def apiStockSearch():
+    # Gets user inputted search data, matches it against the stock list data, and returns a json for use in select2
+    searchString = request.args.get('q')
+    if not searchString:
+        return json.dumps({'results': []})
+    searchString = searchString.lower()
+    searchResults = []
+    stockListDict = pd.read_csv('static/stocklist.csv').set_index('Symbol').T.to_dict('list')
+
+    for stockSymbol in stockListDict:
+        strStockSymbol = str(stockSymbol)
+        strStockName = str(stockListDict[stockSymbol][0])
+        print(strStockSymbol, strStockName)
+        if(searchString in strStockSymbol.lower() or searchString in strStockName.lower()):
+            searchResults.append({'id': strStockSymbol, 'text': '{} ({})'.format(strStockName, strStockSymbol)})
+
+    return json.dumps({'results': searchResults})
+
 # Views
 @app.route('/')
 @app.route('/index')
