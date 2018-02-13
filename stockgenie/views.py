@@ -212,7 +212,6 @@ def apiStockSearch():
     for stockSymbol in stockListDict:
         strStockSymbol = str(stockSymbol)
         strStockName = str(stockListDict[stockSymbol][0])
-        print(strStockSymbol, strStockName)
         if(searchString in strStockSymbol.lower() or searchString in strStockName.lower()):
             searchResults.append({'id': strStockSymbol, 'text': '{} ({})'.format(strStockName, strStockSymbol)})
 
@@ -260,7 +259,7 @@ def index():
     # Creates a chart based on the price data returned from the API
     chart = createStockPriceChart(timeSeriesPriceData, stockMatchDataContainer.companyName, regressionLine)
 
-    return render_template('base.html', stockData=stockData, chart=chart, predictData=predictData, recommendation=recommendation)
+    return render_template('index.html', stockData=stockData, chart=chart, predictData=predictData, recommendation=recommendation)
 
 # Error handling
 @app.errorhandler(404)
