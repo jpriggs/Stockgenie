@@ -7,7 +7,7 @@ import plotly
 import plotly.graph_objs as go
 
 from flask import Flask, render_template, url_for, request, redirect, flash
-from models import ApiStockData, Regression, UserSearchData, StockListData, ColorizedText
+from stockgenie.models import ApiStockData, Regression, UserSearchData, StockListData, ColorizedText
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -207,7 +207,7 @@ def apiStockSearch():
         return json.dumps({'results': []})
     searchString = searchString.lower()
     searchResults = []
-    stockListDict = pd.read_csv('static/stocklist.csv').set_index('Symbol').T.to_dict('list')
+    stockListDict = pd.read_csv('stocklist.csv').set_index('Symbol').T.to_dict('list')
 
     for stockSymbol in stockListDict:
         strStockSymbol = str(stockSymbol)

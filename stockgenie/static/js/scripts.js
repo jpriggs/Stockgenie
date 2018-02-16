@@ -19,7 +19,7 @@ $(document).ready(function() {
             }
         }
     });
-    /*$('#search-item').submit(function() {
+    $('#search-item').submit(function() {
         console.log('form submitted');
         $('#search-btn').prop('disabled', true);
         $.ajax({
@@ -28,5 +28,5 @@ $(document).ready(function() {
                 $('#search-btn').prop('disabled', false);
             }
         });
-    })*/
+    })
 });

@@ -1,0 +1,28 @@
+<div class='col-md-3 col-sm-12'>
+    <div class='stock-predict-box'>
+        <h4>Stock Prediction</h4>
+        <table class='predict-data'>
+            <tbody>
+            {% if predictData %}
+               {% for predictTime, predictPrice in predictData.items() %}
+               <tr>
+                   <td>{{ predictTime }}</td><td>{{ '$%.2f' | format(predictPrice) }}</td>
+               </tr>
+               {% endfor %}
+           {% endif %}
+            </tbody>
+        </table>
+        <table class='recommendation'>
+            <tbody>
+            {% if recommendation %}
+                <tr>
+                    <td class='text-label'>Recommendation</td>
+                </tr>
+                <tr>
+                    <td class='advice' style='color:{{ recommendation['Color'] }}'>{{ recommendation['Text'] }}</td>
+                </tr>
+            {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
