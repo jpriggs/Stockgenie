@@ -7,7 +7,8 @@ import plotly
 import plotly.graph_objs as go
 
 from flask import Flask, render_template, url_for, request, redirect, flash
-from models import ApiStockData, Regression, UserSearchData, StockListData, ColorizedText
+from stockgenie.models import ApiStockData, Regression, UserSearchData, StockListData, ColorizedText
+
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -199,6 +200,24 @@ def getApiStockValues(symbol, searchData):
 
     return df
 
+@app.route('/api/stockSearch')
+def apiStockSearch():
+    # Gets user inputted search data, matches it against the stock list data, and returns a json for use in select2
+    searchString = request.args.get('q')
+    if not searchString:
+        return json.dumps({'results': []})
+    searchString = searchString.lower()
+    searchResults = []
+    stockListDict = pd.read_csv('stocklist.csv').set_index('Symbol').T.to_dict('list')
+
+    for stockSymbol in stockListDict:
+        strStockSymbol = str(stockSymbol)
+        strStockName = str(stockListDict[stockSymbol][0])
+        if(searchString in strStockSymbol.lower() or searchString in strStockName.lower()):
+            searchResults.append({'id': strStockSymbol, 'text': '{} ({})'.format(strStockName, strStockSymbol)})
+
+    return json.dumps({'results': searchResults})
+
 # Views
 @app.route('/')
 @app.route('/index')
@@ -241,7 +260,7 @@ def index():
     # Creates a chart based on the price data returned from the API
     chart = createStockPriceChart(timeSeriesPriceData, stockMatchDataContainer.companyName, regressionLine)
 
-    return render_template('base.html', stockData=stockData, chart=chart, predictData=predictData, recommendation=recommendation)
+    return render_template('index.html', stockData=stockData, chart=chart, predictData=predictData, recommendation=recommendation)
 
 # Error handling
 @app.errorhandler(404)
