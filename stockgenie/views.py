@@ -9,6 +9,7 @@ import plotly.graph_objs as go
 from flask import Flask, render_template, url_for, request, redirect, flash
 from stockgenie.models import ApiStockData, Regression, UserSearchData, StockListData, ColorizedText
 
+
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__)
