@@ -224,7 +224,7 @@ def apiStockSearch():
 def index():
     userSearchedStock = request.args.get('search-item')
     userInterval = int(request.args.get('user-interval') or 1) # in minutes - temp value
-    userFunction = request.args.get('user-function') or 'TIME_SERIES_INTRADAY' # TIME_SERIES_INTRADAY or TIME_SERIES_DAILY - temp value
+    userFunction = request.args.get('user-function') or 'TIME_SERIES_DAILY' # TIME_SERIES_INTRADAY or TIME_SERIES_DAILY - temp value
     if not userSearchedStock:
         return render_template('base.html')
 
